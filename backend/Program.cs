@@ -4,10 +4,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+var reactAppUrl = builder.Configuration["AllowedOrigins:ReactApp"];
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
-        policy => policy.WithOrigins("http://localhost:5173") // React port
+        policy => policy.WithOrigins(reactAppUrl) // React port
                         .AllowAnyMethod()
                         .AllowAnyHeader());
 });

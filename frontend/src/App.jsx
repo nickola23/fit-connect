@@ -4,7 +4,7 @@ function App() {
   const [weather, setWeather] = useState([])
 
   useEffect(() => {
-    fetch('http://localhost:5070/weatherforecast')  // Backend port
+    fetch(`${import.meta.env.VITE_API_URL}/weatherforecast`)  // Backend port
       .then(response => response.json())
       .then(data => setWeather(data))
   }, [])
