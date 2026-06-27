@@ -1,4 +1,4 @@
-# C# (.NET) + React Full-Stack Project
+# C# + React Application
 
 This project features a decoupled architecture containing a C# (ASP.NET Core) Web API backend and a React (Vite) frontend.
 
