@@ -1,24 +1,31 @@
-import { useEffect, useState } from 'react'
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Layout from "@/components/layout/Layout";
+import Home from "@/pages/Home";
+import Auth from "@/pages/Auth";
+import Trainers from "@/pages/Trainers";
+import Help from "@/pages/Help";
+import Terms from "@/pages/Terms";
+import Privacy from "@/pages/Privacy";
+import Contact from "@/pages/Contact";
+import NotFound from "@/pages/NotFound";
 
 function App() {
-  const [weather, setWeather] = useState([])
-
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/weatherforecast`)  // Backend port
-      .then(response => response.json())
-      .then(data => setWeather(data))
-  }, [])
-
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-      <h1>Backend Data in React:</h1>
-      <ul style={{ listStyleType: 'none', padding: 0 }}>
-        {weather.map((item, index) => (
-          <li key={index}>{item.date}: {item.summary} ({item.temperatureC}°C)</li>
-        ))}
-      </ul>
-    </div>
-  )
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/trainers" element={<Trainers />} />
+          <Route path="/help" element={<Help />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;
