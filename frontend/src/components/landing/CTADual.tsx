@@ -38,7 +38,7 @@ export function CTADual() {
               cenu i raspored.
             </p>
             <Button className="mt-8 gap-2 bg-lime text-lime-foreground hover:bg-lime/90" size="lg" asChild>
-              <Link to="/auth">
+              <Link to="/registration/trainer">
                 Postani trener
                 <ArrowRight className="h-4 w-4" />
               </Link>

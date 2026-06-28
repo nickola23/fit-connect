@@ -49,7 +49,7 @@ export function Hero() {
                 </Link>
               </Button>
               <Button size="lg" variant="outline" className="gap-2 px-8" asChild>
-                <Link to="/auth">
+                <Link to="/registration/trainer">
                   Postani trener
                   <Play className="h-4 w-4" />
                 </Link>
