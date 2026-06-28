@@ -46,14 +46,14 @@ export function TrainerShowcase() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
             <h2 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-              Istraži naše trenerE
+              Istraži naše trenere
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
               Svi treneri prolaze verifikaciju pre nego što im dozvolimo rad na platformi.
             </p>
           </div>
           <Button variant="outline" className="self-start sm:self-auto" asChild>
-            <Link to="/trainers">Vidi sve trenera</Link>
+            <Link to="/trainers">Vidi sve trenere</Link>
           </Button>
         </div>
 
