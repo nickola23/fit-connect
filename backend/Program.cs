@@ -1,7 +1,10 @@
+using System.Data;
+// Make sure to include the namespace where PostgresConnection lives
+using backend.database; 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
 var reactAppUrl = builder.Configuration["AllowedOrigins:ReactApp"];
@@ -9,9 +12,9 @@ var reactAppUrl = builder.Configuration["AllowedOrigins:ReactApp"];
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
-        policy => policy.WithOrigins(reactAppUrl) // React port
-                        .AllowAnyMethod()
-                        .AllowAnyHeader());
+        policy => policy.WithOrigins(reactAppUrl!) 
+            .AllowAnyMethod()
+            .AllowAnyHeader());
 });
 
 var app = builder.Build();
@@ -22,31 +25,36 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-// app.UseHttpsRedirection();
 app.UseCors("AllowReactApp");
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+// Fetch users from the PostgreSQL database
+app.MapGet("/users", () =>
+    {
+        var users = new List<User>();
+    
+        using var connection = PostgresConnection.CreateConnection();
+        using var command = connection.CreateCommand();
+    
+        command.CommandText = "SELECT id, name, email, role::text, language FROM users;";
+    
+        using var reader = command.ExecuteReader();
+    
+        while (reader.Read())
+        {
+            users.Add(new User(
+                reader.GetInt32(0),   // id
+                reader.GetString(1),  // name
+                reader.GetString(2),  // email
+                reader.GetString(3),  // role
+                reader.GetString(4)   // language
+            ));
+        }
+    
+        return Results.Ok(users);
+    })
+    .WithName("GetUsers");
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+// Simple record to represent the API response
+record User(int Id, string Name, string Email, string Role, string Language);
