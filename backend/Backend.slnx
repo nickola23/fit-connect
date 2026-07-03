@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FitConnect.Api/FitConnect.Api.csproj" />
+    <Project Path="src/FitConnect.Application/FitConnect.Application.csproj" />
+    <Project Path="src/FitConnect.Domain/FitConnect.Domain.csproj" />
+    <Project Path="src/FitConnect.Infrastructure/FitConnect.Infrastructure.csproj" />
+  </Folder>
+</Solution>
