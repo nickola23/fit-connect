@@ -1,5 +1,7 @@
 BEGIN;
 
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 CREATE TYPE user_role AS ENUM ('ADMIN', 'TRAINER', 'CLIENT');
 CREATE TYPE registration_status AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
 CREATE TYPE training_location AS ENUM ('GYM', 'HOME');
@@ -16,7 +18,7 @@ CREATE TYPE notification_type AS ENUM (
 );
 
 CREATE TABLE users (
-    id            SERIAL PRIMARY KEY,
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name          VARCHAR(150)  NOT NULL,
     email         VARCHAR(255)  NOT NULL UNIQUE,
     password_hash VARCHAR(255)  NOT NULL,
@@ -26,11 +28,11 @@ CREATE TABLE users (
 );
 
 CREATE TABLE admins (
-    user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE trainers (
-    user_id             INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    user_id             UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     registration_status registration_status NOT NULL DEFAULT 'PENDING',
     education           TEXT,
     bio                 TEXT,
@@ -39,7 +41,7 @@ CREATE TABLE trainers (
 );
 
 CREATE TABLE clients (
-    user_id           INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    user_id           UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     goal              TEXT,
     training_location training_location,
     free_trial_used   BOOLEAN NOT NULL DEFAULT FALSE,
@@ -47,8 +49,8 @@ CREATE TABLE clients (
 );
 
 CREATE TABLE credentials (
-    id          SERIAL PRIMARY KEY,
-    trainer_id  INT NOT NULL REFERENCES trainers(user_id) ON DELETE CASCADE,
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    trainer_id  UUID NOT NULL REFERENCES trainers(user_id) ON DELETE CASCADE,
     type        credential_type NOT NULL,
     file_url    VARCHAR(500) NOT NULL,
     issued_by   VARCHAR(255),
@@ -57,8 +59,8 @@ CREATE TABLE credentials (
 CREATE INDEX idx_credentials_trainer ON credentials(trainer_id);
 
 CREATE TABLE pricing_tiers (
-    id                 SERIAL PRIMARY KEY,
-    trainer_id         INT NOT NULL REFERENCES trainers(user_id) ON DELETE CASCADE,
+    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    trainer_id         UUID NOT NULL REFERENCES trainers(user_id) ON DELETE CASCADE,
     sessions_per_week  SMALLINT NOT NULL CHECK (sessions_per_week > 0),
     monthly_price      NUMERIC(10, 2) NOT NULL CHECK (monthly_price >= 0),
     active             BOOLEAN NOT NULL DEFAULT TRUE,
@@ -67,13 +69,13 @@ CREATE TABLE pricing_tiers (
 CREATE INDEX idx_pricing_tiers_trainer ON pricing_tiers(trainer_id);
 
 CREATE TABLE equipment (
-    id   SERIAL PRIMARY KEY,
+    id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(150) NOT NULL UNIQUE
 );
 
 CREATE TABLE exercises (
-    id             SERIAL PRIMARY KEY,
-    trainer_id     INT NOT NULL REFERENCES trainers(user_id) ON DELETE CASCADE,
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    trainer_id     UUID NOT NULL REFERENCES trainers(user_id) ON DELETE CASCADE,
     name           VARCHAR(200) NOT NULL,
     default_reps   SMALLINT NOT NULL CHECK (default_reps > 0),
     default_sets   SMALLINT NOT NULL CHECK (default_sets > 0),
@@ -82,20 +84,20 @@ CREATE TABLE exercises (
 CREATE INDEX idx_exercises_trainer ON exercises(trainer_id);
 
 CREATE TABLE exercise_equipment (
-    exercise_id  INT NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
-    equipment_id INT NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
+    exercise_id  UUID NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+    equipment_id UUID NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
     PRIMARY KEY (exercise_id, equipment_id)
 );
 
 CREATE TABLE client_equipment (
-    client_id    INT NOT NULL REFERENCES clients(user_id) ON DELETE CASCADE,
-    equipment_id INT NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
+    client_id    UUID NOT NULL REFERENCES clients(user_id) ON DELETE CASCADE,
+    equipment_id UUID NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
     PRIMARY KEY (client_id, equipment_id)
 );
 
 CREATE TABLE health_records (
-    id               SERIAL PRIMARY KEY,
-    client_id        INT NOT NULL REFERENCES clients(user_id) ON DELETE CASCADE,
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    client_id        UUID NOT NULL REFERENCES clients(user_id) ON DELETE CASCADE,
     record_date      DATE NOT NULL DEFAULT CURRENT_DATE,
     weight           NUMERIC(5, 2),
     height           NUMERIC(5, 2),
@@ -104,10 +106,10 @@ CREATE TABLE health_records (
 CREATE INDEX idx_health_records_client ON health_records(client_id, record_date);
 
 CREATE TABLE cooperations (
-    id               SERIAL PRIMARY KEY,
-    trainer_id       INT NOT NULL REFERENCES trainers(user_id),
-    client_id        INT NOT NULL REFERENCES clients(user_id),
-    pricing_tier_id  INT REFERENCES pricing_tiers(id), 
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    trainer_id       UUID NOT NULL REFERENCES trainers(user_id),
+    client_id        UUID NOT NULL REFERENCES clients(user_id),
+    pricing_tier_id  UUID REFERENCES pricing_tiers(id), 
     status           cooperation_status NOT NULL DEFAULT 'PENDING',
     request_date     TIMESTAMPTZ NOT NULL DEFAULT now(),
     start_date       DATE,
@@ -128,16 +130,16 @@ CREATE UNIQUE INDEX uq_one_free_trial_per_client
     WHERE is_free_trial = TRUE;
 
 CREATE TABLE payments (
-    id             SERIAL PRIMARY KEY,
-    cooperation_id INT NOT NULL REFERENCES cooperations(id) ON DELETE CASCADE,
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cooperation_id UUID NOT NULL REFERENCES cooperations(id) ON DELETE CASCADE,
     payment_date   DATE NOT NULL DEFAULT CURRENT_DATE,
     amount         NUMERIC(10, 2) NOT NULL CHECK (amount >= 0)
 );
 CREATE INDEX idx_payments_cooperation ON payments(cooperation_id);
 
 CREATE TABLE trainings (
-    id             SERIAL PRIMARY KEY,
-    cooperation_id INT NOT NULL REFERENCES cooperations(id) ON DELETE CASCADE,
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cooperation_id UUID NOT NULL REFERENCES cooperations(id) ON DELETE CASCADE,
     training_type  training_type NOT NULL,
     training_date  DATE NOT NULL,
     status         training_status NOT NULL DEFAULT 'SCHEDULED'
@@ -145,19 +147,19 @@ CREATE TABLE trainings (
 CREATE INDEX idx_trainings_cooperation ON trainings(cooperation_id);
 
 CREATE TABLE live_trainings (
-    training_id  INT PRIMARY KEY REFERENCES trainings(id) ON DELETE CASCADE,
+    training_id  UUID PRIMARY KEY REFERENCES trainings(id) ON DELETE CASCADE,
     meeting_link VARCHAR(500)
 );
 
 CREATE TABLE assigned_trainings (
-    training_id INT PRIMARY KEY REFERENCES trainings(id) ON DELETE CASCADE,
+    training_id UUID PRIMARY KEY REFERENCES trainings(id) ON DELETE CASCADE,
     target_date DATE NOT NULL
 );
 
 CREATE TABLE training_exercises (
-    id                 SERIAL PRIMARY KEY,
-    training_id        INT NOT NULL REFERENCES trainings(id) ON DELETE CASCADE,
-    exercise_id        INT NOT NULL REFERENCES exercises(id),
+    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    training_id        UUID NOT NULL REFERENCES trainings(id) ON DELETE CASCADE,
+    exercise_id        UUID NOT NULL REFERENCES exercises(id),
     assigned_reps      SMALLINT NOT NULL CHECK (assigned_reps > 0),
     assigned_sets      SMALLINT NOT NULL CHECK (assigned_sets > 0),
     completed          BOOLEAN NOT NULL DEFAULT FALSE,
@@ -168,18 +170,18 @@ CREATE INDEX idx_training_exercises_training ON training_exercises(training_id);
 CREATE INDEX idx_training_exercises_exercise ON training_exercises(exercise_id);
 
 CREATE TABLE training_reviews (
-    id                            SERIAL PRIMARY KEY,
-    training_id                   INT NOT NULL UNIQUE REFERENCES trainings(id) ON DELETE CASCADE,
-    trainer_id                    INT NOT NULL REFERENCES trainers(user_id),
+    id                            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    training_id                   UUID NOT NULL UNIQUE REFERENCES trainings(id) ON DELETE CASCADE,
+    trainer_id                    UUID NOT NULL REFERENCES trainers(user_id),
     rating                        SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
     comment                       TEXT,
     visible_to_other_trainers_only BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 CREATE TABLE trainer_reviews (
-    id         SERIAL PRIMARY KEY,
-    trainer_id INT NOT NULL REFERENCES trainers(user_id) ON DELETE CASCADE,
-    client_id  INT NOT NULL REFERENCES clients(user_id) ON DELETE CASCADE,
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    trainer_id UUID NOT NULL REFERENCES trainers(user_id) ON DELETE CASCADE,
+    client_id  UUID NOT NULL REFERENCES clients(user_id) ON DELETE CASCADE,
     rating     SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
     comment    TEXT,
     review_date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -188,9 +190,9 @@ CREATE TABLE trainer_reviews (
 CREATE INDEX idx_trainer_reviews_trainer ON trainer_reviews(trainer_id);
 
 CREATE TABLE client_reports (
-    id         SERIAL PRIMARY KEY,
-    client_id  INT NOT NULL REFERENCES clients(user_id) ON DELETE CASCADE,
-    trainer_id INT NOT NULL REFERENCES trainers(user_id) ON DELETE CASCADE,
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    client_id  UUID NOT NULL REFERENCES clients(user_id) ON DELETE CASCADE,
+    trainer_id UUID NOT NULL REFERENCES trainers(user_id) ON DELETE CASCADE,
     report_text TEXT NOT NULL,
     report_date TIMESTAMPTZ NOT NULL DEFAULT now(),
     status     report_status NOT NULL DEFAULT 'OPEN'
@@ -198,9 +200,9 @@ CREATE TABLE client_reports (
 CREATE INDEX idx_client_reports_trainer ON client_reports(trainer_id);
 
 CREATE TABLE chat_messages (
-    id          SERIAL PRIMARY KEY,
-    sender_id   INT NOT NULL REFERENCES users(id),
-    receiver_id INT NOT NULL REFERENCES users(id),
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sender_id   UUID NOT NULL REFERENCES users(id),
+    receiver_id UUID NOT NULL REFERENCES users(id),
     message_text TEXT NOT NULL,
     sent_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     is_read     BOOLEAN NOT NULL DEFAULT FALSE,
@@ -211,8 +213,8 @@ CREATE INDEX idx_chat_messages_conversation ON chat_messages(sender_id, receiver
 CREATE INDEX idx_chat_messages_receiver ON chat_messages(receiver_id, is_read);
 
 CREATE TABLE system_notifications (
-    id         SERIAL PRIMARY KEY,
-    user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     type       notification_type NOT NULL,
     notif_text TEXT NOT NULL,
     sent_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
