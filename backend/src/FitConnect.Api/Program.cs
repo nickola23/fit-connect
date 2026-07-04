@@ -1,5 +1,9 @@
+using FitConnect.Api.Middleware;
 using FitConnect.Application.Common;
+using FitConnect.Application.Users;
+using FitConnect.Infrastructure.Security;
 using FitConnect.Infrastructure.Persistence;
+using FitConnect.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +24,15 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddSingleton<IDbConnectionFactory, NpgsqlConnectionFactory>();
+builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
+
+builder.Services.AddScoped<IAdminRepository, AdminRepository>();
+builder.Services.AddScoped<ITrainerRepository, TrainerRepository>();
+builder.Services.AddScoped<IClientRepository, ClientRepository>();
+
+builder.Services.AddScoped<AdminService>();
+builder.Services.AddScoped<TrainerService>();
+builder.Services.AddScoped<ClientService>();
 
 var app = builder.Build();
 
@@ -30,6 +43,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseAuthorization();
 
