@@ -1,139 +1,130 @@
 BEGIN;
 
 -- =====================================================================
--- 1. USERS (Admins, Trainers, Clients)
+-- 1. USERS (Shared Base)
 -- =====================================================================
-INSERT INTO users (id, name, email, password_hash, language, role, created_at) VALUES
-(1, 'Admin Pera', 'admin@fitplatform.com', 'hash_admin_123', 'sr', 'ADMIN', now()),
-(2, 'Marko Trenerovic', 'marko@trainer.com', 'hash_trainer_123', 'sr', 'TRAINER', now()),
-(3, 'Jovana Fit', 'jovana@trainer.com', 'hash_trainer_456', 'en', 'TRAINER', now()),
-(4, 'Stefan Klijent', 'stefan@client.com', 'hash_client_123', 'sr', 'CLIENT', now()),
-(5, 'Ana Klijent', 'ana@client.com', 'hash_client_456', 'sr', 'CLIENT', now());
-
-INSERT INTO admins (user_id) VALUES (1);
-
-INSERT INTO trainers (user_id, registration_status, education, bio, approved_at, created_at) VALUES
-(2, 'APPROVED', 'Fakultet sporta i fizickog vaspitanja', 'Specijalista za snagu.', now(), now()),
-(3, 'APPROVED', 'Kurs za personalnog trenera', 'Yoga i mobilnost.', now(), now());
-
-INSERT INTO clients (user_id, goal, training_location, free_trial_used, created_at) VALUES
-(4, 'Gubitak kilograma i definicija', 'GYM', FALSE, now()),
-(5, 'Odrzavanje kondicije', 'HOME', TRUE, now());
+INSERT INTO users (id, name, email, password_hash, language, role) VALUES
+-- Admin
+('10000000-0000-0000-0000-000000000001', 'Marko Marković', 'admin@fitconnect.rs', '$2a$12$e8...hashedpass1', 'sr', 'ADMIN'),
+-- Trainers
+('20000000-0000-0000-0000-000000000001', 'Nikola Petrović', 'nikola.trener@gmail.com', '$2a$12$e8...hashedpass2', 'sr', 'TRAINER'),
+('20000000-0000-0000-0000-000000000002', 'Jelena Jović', 'jelena.fit@gmail.com', '$2a$12$e8...hashedpass3', 'sr', 'TRAINER'),
+-- Clients
+('30000000-0000-0000-0000-000000000001', 'Stefan Stanković', 'stefan.klijent@gmail.com', '$2a$12$e8...hashedpass4', 'sr', 'CLIENT'),
+('30000000-0000-0000-0000-000000000002', 'Ana Anić', 'ana.anic@gmail.com', '$2a$12$e8...hashedpass5', 'sr', 'CLIENT');
 
 -- =====================================================================
--- 2. CREDENTIALS & PRICING TIERS
+-- 2. USER SUBTYPES (Admins, Trainers, Clients)
+-- =====================================================================
+INSERT INTO admins (user_id) VALUES 
+('10000000-0000-0000-0000-000000000001');
+
+INSERT INTO trainers (user_id, registration_status, education, bio, approved_at) VALUES
+('20000000-0000-0000-0000-000000000001', 'APPROVED', 'Fakultet sporta i fizičkog vaspitanja, Beograd', 'Sertifikovani personalni trener sa preko 5 godina iskustva u hipertrofiji i kondiciji.', now() - INTERVAL '30 days'),
+('20000000-0000-0000-0000-000000000002', 'APPROVED', 'FISAF International', 'Specijalizovana za funkcionalni trening, pilates i rehabilitaciju.', now() - INTERVAL '15 days');
+
+INSERT INTO clients (user_id, goal, training_location, free_trial_used) VALUES
+('30000000-0000-0000-0000-000000000001', 'Povećanje mišićne mase i snage.', 'GYM', TRUE),
+('30000000-0000-0000-0000-000000000002', 'Redukcija telesne mase i poboljšanje kondicije.', 'HOME', FALSE);
+
+-- =====================================================================
+-- 3. CREDENTIALS & PRICING TIERS
 -- =====================================================================
 INSERT INTO credentials (id, trainer_id, type, file_url, issued_by, upload_date) VALUES
-(1, 2, 'DIPLOMA', 'https://storage.com/diploma2.pdf', 'FSFV', '2023-01-15'),
-(2, 3, 'COURSE_CERTIFICATE', 'https://storage.com/cert3.pdf', 'Yoga Alliance', '2023-05-20');
+('40000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'DIPLOMA', 'https://storage.fitconnect.rs/docs/diploma_nikola.pdf', 'FSFV Beograd', '2023-06-15'),
+('40000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002', 'LICENSE', 'https://storage.fitconnect.rs/docs/licenca_jelena.pdf', 'FISAF Srbija', '2024-01-10');
 
 INSERT INTO pricing_tiers (id, trainer_id, sessions_per_week, monthly_price, active) VALUES
-(1, 2, 3, 5000.00, TRUE),
-(2, 2, 5, 8000.00, TRUE),
-(3, 3, 2, 4000.00, TRUE);
+('50000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 3, 15000.00, TRUE),
+('50000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', 4, 18000.00, TRUE),
+('50000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000002', 2, 12000.00, TRUE);
 
 -- =====================================================================
--- 3. EQUIPMENT & EXERCISES
+-- 4. EQUIPMENT & EXERCISES
 -- =====================================================================
 INSERT INTO equipment (id, name) VALUES
-(1, 'Bucice'),
-(2, 'Elasticna traka'),
-(3, 'Prostirka za jogu'),
-(4, 'Benč klupa');
-
-INSERT INTO exercises (id, trainer_id, name, default_reps, default_sets, demo_video_url) VALUES
-(1, 2, 'Benč pres', 10, 4, 'https://youtube.com/bench'),
-(2, 2, 'Biceps pregib bucicama', 12, 3, 'https://youtube.com/biceps'),
-(3, 3, 'Pozdrav suncu', 5, 2, 'https://youtube.com/yoga1'),
-(4, 3, 'Razvlacenje trakom', 15, 3, NULL);
-
-INSERT INTO exercise_equipment (exercise_id, equipment_id) VALUES
-(1, 4),
-(2, 1),
-(3, 3),
-(4, 2);
+('60000000-0000-0000-0000-000000000001', 'Bučice (Dumbbells)'),
+('60000000-0000-0000-0000-000000000002', 'Olimpijska šipka i tegovi'),
+('60000000-0000-0000-0000-000000000003', 'Klupa za benč'),
+('60000000-0000-0000-0000-000000000004', 'Elastične trake (Resistance Bands)'),
+('60000000-0000-0000-0000-000000000005', 'Prostirka za vežbanje');
 
 INSERT INTO client_equipment (client_id, equipment_id) VALUES
-(5, 1),
-(5, 2),
-(5, 3);
+('30000000-0000-0000-0000-000000000002', '60000000-0000-0000-0000-000000000001'),
+('30000000-0000-0000-0000-000000000002', '60000000-0000-0000-0000-000000000004'),
+('30000000-0000-0000-0000-000000000002', '60000000-0000-0000-0000-000000000005');
+
+INSERT INTO exercises (id, trainer_id, name, default_reps, default_sets, demo_video_url) VALUES
+('70000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'Benč pres (Flat Bench Press)', 8, 4, 'https://youtube.com/watch?v=demo1'),
+('70000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', 'Čučanj sa šipkom (Barbell Squat)', 6, 4, 'https://youtube.com/watch?v=demo2'),
+('70000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000002', 'Goblet čučanj sa bučicom', 12, 3, 'https://youtube.com/watch?v=demo3'),
+('70000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000002', 'Glute Bridge sa elastičnom trakom', 15, 3, 'https://youtube.com/watch?v=demo4');
+
+INSERT INTO exercise_equipment (exercise_id, equipment_id) VALUES
+('70000000-0000-0000-0000-000000000001', '60000000-0000-0000-0000-000000000002'),
+('70000000-0000-0000-0000-000000000001', '60000000-0000-0000-0000-000000000003'),
+('70000000-0000-0000-0000-000000000002', '60000000-0000-0000-0000-000000000002'),
+('70000000-0000-0000-0000-000000000003', '60000000-0000-0000-0000-000000000001'),
+('70000000-0000-0000-0000-000000000004', '60000000-0000-0000-0000-000000000004'),
+('70000000-0000-0000-0000-000000000004', '60000000-0000-0000-0000-000000000005');
 
 -- =====================================================================
--- 4. HEALTH RECORDS
+-- 5. HEALTH RECORDS
 -- =====================================================================
-INSERT INTO health_records (id, client_id, record_date, weight, height, health_condition) VALUES
-(1, 4, '2023-10-01', 95.5, 185.0, 'Povreda desnog kolena pre 5 godina.'),
-(2, 5, '2023-10-05', 65.0, 170.0, 'Nema zdravstvenih problema.');
+INSERT INTO health_records (client_id, record_date, weight, height, health_condition) VALUES
+('30000000-0000-0000-0000-000000000001', CURRENT_DATE - INTERVAL '10 days', 82.5, 185.0, 'Nema hroničnih oboljenja. Lakša povreda levog zgloba pre 2 godine.'),
+('30000000-0000-0000-0000-000000000002', CURRENT_DATE - INTERVAL '5 days', 68.0, 168.0, 'Astma pri naporu, preporučeno izbegavanje preintenzivnog kardia.');
 
 -- =====================================================================
--- 5. COOPERATIONS & PAYMENTS
+-- 6. COOPERATIONS & PAYMENTS
 -- =====================================================================
 INSERT INTO cooperations (id, trainer_id, client_id, pricing_tier_id, status, request_date, start_date, end_date, is_free_trial) VALUES
-(1, 2, 4, 1, 'ACTIVE', '2023-10-01 10:00:00', '2023-10-02', '2023-11-02', FALSE),
-(2, 3, 5, NULL, 'PENDING', '2023-10-10 14:30:00', NULL, NULL, TRUE);
+-- Active paid cooperation for Stefan
+('80000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000001', 'ACTIVE', now() - INTERVAL '15 days', CURRENT_DATE - INTERVAL '14 days', CURRENT_DATE + INTERVAL '16 days', FALSE),
+-- Pending free trial request for Ana
+('80000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000002', NULL, 'PENDING', now() - INTERVAL '1 day', NULL, NULL, TRUE);
 
-INSERT INTO payments (id, cooperation_id, payment_date, amount) VALUES
-(1, 1, '2023-10-01', 5000.00);
+INSERT INTO payments (cooperation_id, payment_date, amount) VALUES
+('80000000-0000-0000-0000-000000000001', CURRENT_DATE - INTERVAL '14 days', 15000.00);
 
 -- =====================================================================
--- 6. TRAININGS (Live & Assigned) & EXERCISES
+-- 7. TRAININGS HIERARCHY
 -- =====================================================================
 INSERT INTO trainings (id, cooperation_id, training_type, training_date, status) VALUES
-(1, 1, 'LIVE', '2023-10-05', 'COMPLETED'),
-(2, 1, 'ASSIGNED', '2023-10-07', 'SCHEDULED'),
-(3, 1, 'LIVE', '2023-10-10', 'SCHEDULED');
+-- Completed live training
+('90000000-0000-0000-0000-000000000001', '80000000-0000-0000-0000-000000000001', 'LIVE', CURRENT_DATE - INTERVAL '2 days', 'COMPLETED'),
+-- Scheduled assigned training for tomorrow
+('90000000-0000-0000-0000-000000000002', '80000000-0000-0000-0000-000000000001', 'ASSIGNED', CURRENT_DATE + INTERVAL '1 day', 'SCHEDULED');
 
 INSERT INTO live_trainings (training_id, meeting_link) VALUES
-(1, 'https://zoom.us/j/123456'),
-(3, 'https://zoom.us/j/654321');
+('90000000-0000-0000-0000-000000000001', 'https://meet.google.com/abc-defg-hij');
 
 INSERT INTO assigned_trainings (training_id, target_date) VALUES
-(2, '2023-10-07');
+('90000000-0000-0000-0000-000000000002', CURRENT_DATE + INTERVAL '1 day');
 
-INSERT INTO training_exercises (id, training_id, exercise_id, assigned_reps, assigned_sets, completed, difficulty_rating, client_comment) VALUES
-(1, 1, 1, 10, 4, TRUE, 4, 'Bilo je naporno, ali uspesno.'),
-(2, 1, 2, 12, 3, TRUE, 3, NULL),
-(3, 2, 2, 15, 3, FALSE, NULL, NULL);
-
--- =====================================================================
--- 7. REVIEWS & REPORTS
--- =====================================================================
-INSERT INTO training_reviews (id, training_id, trainer_id, rating, comment, visible_to_other_trainers_only) VALUES
-(1, 1, 3, 5, 'Klijent je imao odlicnu formu tokom celog treninga.', TRUE);
-
-INSERT INTO trainer_reviews (id, trainer_id, client_id, rating, comment, review_date) VALUES
-(1, 2, 4, 5, 'Najbolji trener! Jako stručan i posvećen.', '2023-10-15');
-
-INSERT INTO client_reports (id, client_id, trainer_id, report_text, report_date, status) VALUES
-(1, 5, 2, 'Trener mi se nepristojno obracao u porukama.', '2023-10-12 09:00:00', 'OPEN');
+INSERT INTO training_exercises (training_id, exercise_id, assigned_reps, assigned_sets, completed, difficulty_rating, client_comment) VALUES
+('90000000-0000-0000-0000-000000000001', '70000000-0000-0000-0000-000000000001', 8, 4, TRUE, 4, 'Zadnje dve ponavljanja u 4. seriji su bila baš teška.'),
+('90000000-0000-0000-0000-000000000001', '70000000-0000-0000-0000-000000000002', 6, 4, TRUE, 3, 'Odličan osećaj, forma stabilna.'),
+('90000000-0000-0000-0000-000000000002', '70000000-0000-0000-0000-000000000001', 8, 4, FALSE, NULL, NULL);
 
 -- =====================================================================
--- 8. COMMUNICATIONS & NOTIFICATIONS
+-- 8. REVIEWS & REPORTS
 -- =====================================================================
-INSERT INTO chat_messages (id, sender_id, receiver_id, message_text, sent_at, is_read, forwarded_via_email) VALUES
-(1, 4, 2, 'Hej, da li sutra radimo noge ili grudi?', '2023-10-04 18:00:00', TRUE, FALSE),
-(2, 2, 4, 'Sutra radimo grudi i ruke. Vidimo se!', '2023-10-04 18:30:00', TRUE, FALSE),
-(3, 5, 3, 'Poslala sam zahtev za probni trening.', '2023-10-10 14:35:00', FALSE, TRUE);
+INSERT INTO training_reviews (training_id, trainer_id, rating, comment, visible_to_other_trainers_only) VALUES
+('90000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 5, 'Klijent je odlično napredovao sa kilažom na benču. Obratiti pažnju na mobilnost kukova pri čučnju sledeći put.', TRUE);
 
-INSERT INTO system_notifications (id, user_id, type, notif_text, sent_at, is_read) VALUES
-(1, 4, 'COOPERATION_ACCEPTED', 'Vas zahtev za saradnju je prihvacen!', '2023-10-01 12:00:00', TRUE),
-(2, 3, 'STATISTICS', 'Imate novi zahtev za probni trening.', '2023-10-10 14:30:00', FALSE);
+INSERT INTO trainer_reviews (trainer_id, client_id, rating, comment, review_date) VALUES
+('20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 5, 'Nikola je izuzetno posvećen i profesionalan. Trening plan je odlično prilagođen mojim ciljevima!', CURRENT_DATE - INTERVAL '1 day');
 
--- Resinhronizacija SERIAL sekvenci kako bi buduci INSERTable radili pravilno (posle rucnog unosa ID-jeva)
-SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE(MAX(id), 1)) FROM users;
-SELECT setval(pg_get_serial_sequence('credentials', 'id'), COALESCE(MAX(id), 1)) FROM credentials;
-SELECT setval(pg_get_serial_sequence('pricing_tiers', 'id'), COALESCE(MAX(id), 1)) FROM pricing_tiers;
-SELECT setval(pg_get_serial_sequence('equipment', 'id'), COALESCE(MAX(id), 1)) FROM equipment;
-SELECT setval(pg_get_serial_sequence('exercises', 'id'), COALESCE(MAX(id), 1)) FROM exercises;
-SELECT setval(pg_get_serial_sequence('health_records', 'id'), COALESCE(MAX(id), 1)) FROM health_records;
-SELECT setval(pg_get_serial_sequence('cooperations', 'id'), COALESCE(MAX(id), 1)) FROM cooperations;
-SELECT setval(pg_get_serial_sequence('payments', 'id'), COALESCE(MAX(id), 1)) FROM payments;
-SELECT setval(pg_get_serial_sequence('trainings', 'id'), COALESCE(MAX(id), 1)) FROM trainings;
-SELECT setval(pg_get_serial_sequence('training_exercises', 'id'), COALESCE(MAX(id), 1)) FROM training_exercises;
-SELECT setval(pg_get_serial_sequence('training_reviews', 'id'), COALESCE(MAX(id), 1)) FROM training_reviews;
-SELECT setval(pg_get_serial_sequence('trainer_reviews', 'id'), COALESCE(MAX(id), 1)) FROM trainer_reviews;
-SELECT setval(pg_get_serial_sequence('client_reports', 'id'), COALESCE(MAX(id), 1)) FROM client_reports;
-SELECT setval(pg_get_serial_sequence('chat_messages', 'id'), COALESCE(MAX(id), 1)) FROM chat_messages;
-SELECT setval(pg_get_serial_sequence('system_notifications', 'id'), COALESCE(MAX(id), 1)) FROM system_notifications;
+-- =====================================================================
+-- 9. MESSAGES & NOTIFICATIONS
+-- =====================================================================
+INSERT INTO chat_messages (sender_id, receiver_id, message_text, sent_at, is_read) VALUES
+('20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'Ćao Stefane, uneo sam plan treninga za sutra. Pogledaj kad stigneš!', now() - INTERVAL '3 hours', TRUE),
+('30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'Video sam, sve je jasno. Vidimo se sutra!', now() - INTERVAL '2 hours', TRUE);
+
+INSERT INTO system_notifications (user_id, type, notif_text, sent_at, is_read) VALUES
+('30000000-0000-0000-0000-000000000001', 'COOPERATION_ACCEPTED', 'Trener Nikola Petrović je prihvatio vaš zahtev za saradnju.', now() - INTERVAL '14 days', TRUE),
+('20000000-0000-0000-0000-000000000002', 'COOPERATION_ACCEPTED', 'Imate novi zahtev za probni trening od korisnika Ana Anić.', now() - INTERVAL '1 day', FALSE);
 
 COMMIT;
