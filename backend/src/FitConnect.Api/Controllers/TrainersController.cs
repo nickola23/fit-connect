@@ -2,12 +2,14 @@
 using FitConnect.Api.Contracts.Trainers;
 using FitConnect.Application.Users;
 using FitConnect.Domain.Users;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FitConnect.Api.Controllers;
 
 [ApiController]
 [Route("api/trainers")]
+[Authorize]
 public class TrainersController : ControllerBase
 {
     private readonly TrainerService trainerService;
@@ -38,15 +40,8 @@ public class TrainersController : ControllerBase
         return trainer is null ? NotFound() : Ok(ToResponse(trainer));
     }
 
-    [HttpPost]
-    public async Task<ActionResult<TrainerResponse>> Create(CreateTrainerRequest request, CancellationToken cancellationToken)
-    {
-        var trainer = await trainerService.CreateAsync(
-            request.Name, request.Email, request.Password, request.Language, request.Education, request.Bio, cancellationToken);
-        return CreatedAtAction(nameof(GetById), new { id = trainer.Id }, ToResponse(trainer));
-    }
-
     [HttpPatch("{id:guid}")]
+    [Authorize(Policy = "SameUserOrAdmin")]
     public async Task<IActionResult> Update(Guid id, UpdateTrainerRequest request, CancellationToken cancellationToken)
     {
         await trainerService.UpdateAsync(id, request.Name, request.Language, request.Education, request.Bio, cancellationToken);
@@ -54,6 +49,7 @@ public class TrainersController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Policy = "SameUserOrAdmin")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         await trainerService.DeleteAsync(id, cancellationToken);

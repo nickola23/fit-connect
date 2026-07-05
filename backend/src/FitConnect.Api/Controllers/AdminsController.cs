@@ -1,12 +1,15 @@
 ﻿using FitConnect.Api.Contracts.Admins;
 using FitConnect.Application.Users;
+using FitConnect.Domain.Enums;
 using FitConnect.Domain.Users;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FitConnect.Api.Controllers;
 
 [ApiController]
 [Route("api/admins")]
+[Authorize(Roles = nameof(UserRole.Admin))]
 public class AdminsController : ControllerBase
 {
     private readonly AdminService adminService;
