@@ -1,18 +1,22 @@
+using System.Text;
+using FitConnect.Api.Authorization;
 using FitConnect.Api.Middleware;
+using FitConnect.Application.Auth;
 using FitConnect.Application.Common;
 using FitConnect.Application.Users;
 using FitConnect.Infrastructure.Security;
 using FitConnect.Infrastructure.Persistence;
 using FitConnect.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var reactAppUrl = builder.Configuration["AllowedOrigins:ReactApp"];
 
-// Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
 builder.Services.AddOpenApi();
 
 builder.Services.AddCors(options =>
@@ -34,6 +38,38 @@ builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<TrainerService>();
 builder.Services.AddScoped<ClientService>();
 
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
+builder.Services.AddSingleton<ITokenGenerator, JwtTokenGenerator>();
+builder.Services.AddScoped<IAuthUserRepository, AuthUserRepository>();
+builder.Services.AddScoped<AuthService>();
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserAccessor, HttpCurrentUserAccessor>();
+builder.Services.AddSingleton<IAuthorizationHandler, SameUserOrAdminAuthorizationHandler>();
+
+var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()!;
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtOptions.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwtOptions.Audience,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("SameUserOrAdmin", policy => policy.Requirements.Add(new SameUserOrAdminRequirement()));
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -45,6 +81,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 
