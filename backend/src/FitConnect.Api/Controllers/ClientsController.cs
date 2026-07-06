@@ -1,5 +1,7 @@
 ﻿using FitConnect.Api.Contracts.Clients;
 using FitConnect.Api.Contracts.Common;
+using FitConnect.Api.Contracts.Cooperations;
+using FitConnect.Application.Cooperations;
 using FitConnect.Application.Users;
 using FitConnect.Domain.Enums;
 using FitConnect.Domain.Users;
@@ -14,10 +16,12 @@ namespace FitConnect.Api.Controllers;
 public class ClientsController : ControllerBase
 {
     private readonly ClientService clientService;
+    private readonly CooperationService cooperationService;
 
-    public ClientsController(ClientService clientService)
+    public ClientsController(ClientService clientService, CooperationService cooperationService)
     {
         this.clientService = clientService;
+        this.cooperationService = cooperationService;
     }
 
     [HttpGet]
@@ -57,6 +61,14 @@ public class ClientsController : ControllerBase
     {
         await clientService.DeleteAsync(id, cancellationToken);
         return NoContent();
+    }
+    
+    [HttpGet("{id:guid}/cooperations")]
+    [Authorize(Policy = "SameUserOrAdmin")]
+    public async Task<ActionResult<IReadOnlyList<CooperationResponse>>> GetCooperations(Guid id, CancellationToken cancellationToken)
+    {
+        var cooperations = await cooperationService.GetForClientAsync(id, cancellationToken);
+        return Ok(cooperations.Select(CooperationResponse.FromDomain));
     }
 
     private static ClientResponse ToResponse(Client client) => new()
