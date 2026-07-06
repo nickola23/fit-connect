@@ -32,4 +32,9 @@ public class Client : User
         Goal = goal;
         TrainingLocation = trainingLocation;
     }
+    
+    public void MarkFreeTrialUsed()
+    {
+        FreeTrialUsed = true;
+    }
 }
