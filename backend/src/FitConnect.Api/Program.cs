@@ -3,6 +3,7 @@ using FitConnect.Api.Authorization;
 using FitConnect.Api.Middleware;
 using FitConnect.Application.Auth;
 using FitConnect.Application.Common;
+using FitConnect.Application.Cooperations;
 using FitConnect.Application.Users;
 using FitConnect.Infrastructure.Security;
 using FitConnect.Infrastructure.Persistence;
@@ -47,6 +48,13 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserAccessor, HttpCurrentUserAccessor>();
 builder.Services.AddSingleton<IAuthorizationHandler, SameUserOrAdminAuthorizationHandler>();
 
+builder.Services.AddScoped<ICooperationRepository, CooperationRepository>();
+builder.Services.AddScoped<IPricingTierRepository, PricingTierRepository>();
+builder.Services.AddScoped<CooperationService>();
+
+builder.Services.AddScoped<IAuthorizationHandler, CooperationParticipantOrAdminAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, CooperationTrainerParticipantAuthorizationHandler>();
+
 var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()!;
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -68,11 +76,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("SameUserOrAdmin", policy => policy.Requirements.Add(new SameUserOrAdminRequirement()));
+    options.AddPolicy("CooperationParticipantOrAdmin", policy => policy.Requirements.Add(new CooperationParticipantOrAdminRequirement()));
+    options.AddPolicy("CooperationTrainerParticipant", policy => policy.Requirements.Add(new CooperationTrainerParticipantRequirement()));
 });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

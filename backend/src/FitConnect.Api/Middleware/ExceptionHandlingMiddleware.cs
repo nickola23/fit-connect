@@ -29,6 +29,34 @@ public class ExceptionHandlingMiddleware
         {
             await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
         }
+        catch (InvalidCredentialsException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Unauthorized, ex.Message);
+        }
+        catch (CooperationNotFoundException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.NotFound, ex.Message);
+        }
+        catch (PricingTierNotFoundException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.NotFound, ex.Message);
+        }
+        catch (CooperationAlreadyActiveException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
+        catch (FreeTrialAlreadyUsedException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
+        catch (InvalidCooperationStatusTransitionException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
+        catch (TrainerNotApprovedException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "Unhandled exception while processing {Path}", context.Request.Path);
