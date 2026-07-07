@@ -1,9 +1,14 @@
 ﻿using FitConnect.Api.Contracts.Common;
 using FitConnect.Api.Contracts.Cooperations;
+using FitConnect.Api.Contracts.Exercises;
+using FitConnect.Api.Contracts.PricingTiers;
 using FitConnect.Api.Contracts.Trainers;
+using FitConnect.Application.Common;
 using FitConnect.Application.Cooperations;
+using FitConnect.Application.Exercises;
 using FitConnect.Application.Users;
 using FitConnect.Domain.Cooperations;
+using FitConnect.Domain.Enums;
 using FitConnect.Domain.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,11 +22,18 @@ public class TrainersController : ControllerBase
 {
     private readonly TrainerService trainerService;
     private readonly CooperationService cooperationService;
+    private readonly PricingTierService pricingTierService;
+    private readonly ExerciseService exerciseService;
+    private readonly ICurrentUserAccessor currentUser;
 
-    public TrainersController(TrainerService trainerService, CooperationService cooperationService)
+    public TrainersController(TrainerService trainerService, CooperationService cooperationService,
+        PricingTierService pricingTierService, ExerciseService exerciseService, ICurrentUserAccessor currentUser)
     {
         this.trainerService = trainerService;
         this.cooperationService = cooperationService;
+        this.pricingTierService = pricingTierService;
+        this.exerciseService = exerciseService;
+        this.currentUser = currentUser; 
     }
 
     [HttpGet]
@@ -77,6 +89,38 @@ public class TrainersController : ControllerBase
 
         var cooperations = await cooperationService.GetForTrainerAsync(id, statusFilter, cancellationToken);
         return Ok(cooperations.Select(CooperationResponse.FromDomain));
+    }
+    
+    [HttpGet("{id:guid}/pricing-tiers")]
+    public async Task<ActionResult<IReadOnlyList<PricingTierResponse>>> GetPricingTiers(Guid id, CancellationToken cancellationToken)
+    {
+        var isOwnerOrAdmin = currentUser.Role == UserRole.Admin || currentUser.UserId == id;
+        var tiers = await pricingTierService.GetForTrainerAsync(id, activeOnly: !isOwnerOrAdmin, cancellationToken);
+        return Ok(tiers.Select(PricingTierResponse.FromDomain));
+    }
+
+    [HttpPost("{id:guid}/pricing-tiers")]
+    [Authorize(Policy = "SameUserOrAdmin")]
+    public async Task<ActionResult<PricingTierResponse>> CreatePricingTier(Guid id, CreatePricingTierRequest request, CancellationToken cancellationToken)
+    {
+        var tier = await pricingTierService.CreateAsync(id, request.SessionsPerWeek, request.MonthlyPrice, cancellationToken);
+        return CreatedAtAction(nameof(PricingTiersController.GetById), "PricingTiers", new { id = tier.Id }, PricingTierResponse.FromDomain(tier));
+    }
+
+    [HttpGet("{id:guid}/exercises")]
+    [Authorize(Policy = "SameUserOrAdmin")]
+    public async Task<ActionResult<IReadOnlyList<ExerciseResponse>>> GetExercises(Guid id, CancellationToken cancellationToken)
+    {
+        var exercises = await exerciseService.GetForTrainerAsync(id, cancellationToken);
+        return Ok(exercises.Select(ExerciseResponse.FromDomain));
+    }
+
+    [HttpPost("{id:guid}/exercises")]
+    [Authorize(Policy = "SameUserOrAdmin")]
+    public async Task<ActionResult<ExerciseResponse>> CreateExercise(Guid id, CreateExerciseRequest request, CancellationToken cancellationToken)
+    {
+        var exercise = await exerciseService.CreateAsync(id, request.Name, request.DefaultReps, request.DefaultSets, cancellationToken);
+        return CreatedAtAction(nameof(ExercisesController.GetById), "Exercises", new { id = exercise.Id }, ExerciseResponse.FromDomain(exercise));
     }
 
     private static TrainerResponse ToResponse(Trainer trainer) => new()

@@ -57,6 +57,18 @@ public class ExceptionHandlingMiddleware
         {
             await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
         }
+        catch (DuplicatePricingTierException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
+        catch (ExerciseNotFoundException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.NotFound, ex.Message);
+        }
+        catch (ExerciseInUseException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "Unhandled exception while processing {Path}", context.Request.Path);
