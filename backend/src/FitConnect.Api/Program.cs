@@ -4,6 +4,7 @@ using FitConnect.Api.Middleware;
 using FitConnect.Application.Auth;
 using FitConnect.Application.Common;
 using FitConnect.Application.Cooperations;
+using FitConnect.Application.Equipment;
 using FitConnect.Application.Exercises;
 using FitConnect.Application.Users;
 using FitConnect.Infrastructure.Security;
@@ -63,6 +64,15 @@ builder.Services.AddScoped<ExerciseService>();
 
 builder.Services.AddScoped<IAuthorizationHandler, PricingTierOwnerOrAdminAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, ExerciseOwnerOrAdminAuthorizationHandler>();
+
+builder.Services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+builder.Services.AddScoped<EquipmentService>();
+
+builder.Services.AddScoped<IExerciseEquipmentRepository, ExerciseEquipmentRepository>();
+builder.Services.AddScoped<ExerciseEquipmentService>();
+
+builder.Services.AddScoped<IClientEquipmentRepository, ClientEquipmentRepository>();
+builder.Services.AddScoped<ClientEquipmentService>();
 
 var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()!;
 

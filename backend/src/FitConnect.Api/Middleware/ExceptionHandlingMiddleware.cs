@@ -69,6 +69,18 @@ public class ExceptionHandlingMiddleware
         {
             await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
         }
+        catch (EquipmentNotFoundException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.NotFound, ex.Message);
+        }
+        catch (DuplicateEquipmentNameException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
+        catch (EquipmentInUseException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "Unhandled exception while processing {Path}", context.Request.Path);
