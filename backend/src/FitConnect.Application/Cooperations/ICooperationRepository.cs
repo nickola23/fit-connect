@@ -1,4 +1,5 @@
 ﻿using FitConnect.Domain.Cooperations;
+using FitConnect.Domain.Enums;
 
 namespace FitConnect.Application.Cooperations;
 

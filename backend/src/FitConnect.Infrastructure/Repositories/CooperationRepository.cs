@@ -2,6 +2,7 @@
 using FitConnect.Application.Common;
 using FitConnect.Application.Cooperations;
 using FitConnect.Domain.Cooperations;
+using FitConnect.Domain.Enums;
 using FitConnect.Domain.Exceptions;
 using Npgsql;
 
