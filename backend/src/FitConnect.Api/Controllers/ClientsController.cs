@@ -1,7 +1,9 @@
 ﻿using FitConnect.Api.Contracts.Clients;
 using FitConnect.Api.Contracts.Common;
 using FitConnect.Api.Contracts.Cooperations;
+using FitConnect.Api.Contracts.Equipment;
 using FitConnect.Application.Cooperations;
+using FitConnect.Application.Equipment;
 using FitConnect.Application.Users;
 using FitConnect.Domain.Enums;
 using FitConnect.Domain.Users;
@@ -17,11 +19,14 @@ public class ClientsController : ControllerBase
 {
     private readonly ClientService clientService;
     private readonly CooperationService cooperationService;
+    private readonly ClientEquipmentService clientEquipmentService;
 
-    public ClientsController(ClientService clientService, CooperationService cooperationService)
+    public ClientsController(ClientService clientService, CooperationService cooperationService,
+        ClientEquipmentService clientEquipmentService)
     {
         this.clientService = clientService;
         this.cooperationService = cooperationService;
+        this.clientEquipmentService = clientEquipmentService;
     }
 
     [HttpGet]
@@ -69,6 +74,30 @@ public class ClientsController : ControllerBase
     {
         var cooperations = await cooperationService.GetForClientAsync(id, cancellationToken);
         return Ok(cooperations.Select(CooperationResponse.FromDomain));
+    }
+    
+    [HttpGet("{id:guid}/equipment")]
+    [Authorize(Policy = "SameUserOrAdmin")]
+    public async Task<ActionResult<IReadOnlyList<EquipmentResponse>>> GetEquipment(Guid id, CancellationToken cancellationToken)
+    {
+        var equipment = await clientEquipmentService.GetForClientAsync(id, cancellationToken);
+        return Ok(equipment.Select(EquipmentResponse.FromDomain));
+    }
+
+    [HttpPost("{id:guid}/equipment/{equipmentId:guid}")]
+    [Authorize(Policy = "SameUserOrAdmin")]
+    public async Task<IActionResult> AddEquipment(Guid id, Guid equipmentId, CancellationToken cancellationToken)
+    {
+        await clientEquipmentService.AddAsync(id, equipmentId, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpDelete("{id:guid}/equipment/{equipmentId:guid}")]
+    [Authorize(Policy = "SameUserOrAdmin")]
+    public async Task<IActionResult> RemoveEquipment(Guid id, Guid equipmentId, CancellationToken cancellationToken)
+    {
+        await clientEquipmentService.RemoveAsync(id, equipmentId, cancellationToken);
+        return NoContent();
     }
 
     private static ClientResponse ToResponse(Client client) => new()
