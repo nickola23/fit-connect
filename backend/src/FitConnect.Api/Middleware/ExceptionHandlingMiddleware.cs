@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using FitConnect.Domain.Exceptions;
+using FitConnect.Domain.Exceptions.Trainings;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FitConnect.Api.Middleware;
@@ -78,6 +79,34 @@ public class ExceptionHandlingMiddleware
             await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
         }
         catch (EquipmentInUseException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
+        catch (TrainingNotFoundException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.NotFound, ex.Message);
+        }
+        catch (TrainingExerciseNotFoundException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.NotFound, ex.Message);
+        }
+        catch (InvalidTrainingStatusTransitionException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
+        catch (CooperationNotActiveForTrainingException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
+        catch (ExerciseNotOwnedByTrainerException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
+        catch (TrainingNotCompletedException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
+        catch (TrainingReviewAlreadyExistsException ex)
         {
             await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
         }
