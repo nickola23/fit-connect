@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using FitConnect.Api.Authorization;
 using FitConnect.Api.Middleware;
 using FitConnect.Application.Auth;
@@ -6,6 +7,7 @@ using FitConnect.Application.Common;
 using FitConnect.Application.Cooperations;
 using FitConnect.Application.Equipment;
 using FitConnect.Application.Exercises;
+using FitConnect.Application.Trainings;
 using FitConnect.Application.Users;
 using FitConnect.Infrastructure.Security;
 using FitConnect.Infrastructure.Persistence;
@@ -19,6 +21,9 @@ var builder = WebApplication.CreateBuilder(args);
 var reactAppUrl = builder.Configuration["AllowedOrigins:ReactApp"];
 
 builder.Services.AddControllers();
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 builder.Services.AddOpenApi();
 
@@ -74,6 +79,20 @@ builder.Services.AddScoped<ExerciseEquipmentService>();
 builder.Services.AddScoped<IClientEquipmentRepository, ClientEquipmentRepository>();
 builder.Services.AddScoped<ClientEquipmentService>();
 
+builder.Services.AddScoped<ITrainingRepository, TrainingRepository>();
+builder.Services.AddScoped<TrainingService>();
+
+builder.Services.AddScoped<ITrainingExerciseRepository, TrainingExerciseRepository>();
+builder.Services.AddScoped<TrainingExerciseService>();
+
+builder.Services.AddScoped<ITrainingReviewRepository, TrainingReviewRepository>();
+builder.Services.AddScoped<TrainingReviewService>();
+
+builder.Services.AddScoped<IAuthorizationHandler, TrainingParticipantOrAdminAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, TrainingTrainerOrAdminAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, TrainingTrainerOnlyAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, TrainingExerciseClientOwnerAuthorizationHandler>();
+
 var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()!;
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -99,6 +118,10 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("CooperationTrainerParticipant", policy => policy.Requirements.Add(new CooperationTrainerParticipantRequirement()));
     options.AddPolicy("PricingTierOwnerOrAdmin", policy => policy.Requirements.Add(new PricingTierOwnerOrAdminRequirement()));
     options.AddPolicy("ExerciseOwnerOrAdmin", policy => policy.Requirements.Add(new ExerciseOwnerOrAdminRequirement()));
+    options.AddPolicy("TrainingParticipantOrAdmin", policy => policy.Requirements.Add(new TrainingParticipantOrAdminRequirement()));
+    options.AddPolicy("TrainingTrainerOrAdmin", policy => policy.Requirements.Add(new TrainingTrainerOrAdminRequirement()));
+    options.AddPolicy("TrainingTrainerOnly", policy => policy.Requirements.Add(new TrainingTrainerOnlyRequirement()));
+    options.AddPolicy("TrainingExerciseClientOwner", policy => policy.Requirements.Add(new TrainingExerciseClientOwnerRequirement()));
 });
 
 var app = builder.Build();

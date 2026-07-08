@@ -1,4 +1,5 @@
-﻿using FitConnect.Domain.Exceptions;
+﻿using FitConnect.Domain.Enums;
+using FitConnect.Domain.Exceptions;
 
 namespace FitConnect.Domain.Cooperations;
 

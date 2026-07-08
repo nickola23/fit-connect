@@ -1,4 +1,4 @@
-﻿namespace FitConnect.Domain.Cooperations;
+﻿namespace FitConnect.Domain.Enums;
 
 public enum CooperationStatus
 {
