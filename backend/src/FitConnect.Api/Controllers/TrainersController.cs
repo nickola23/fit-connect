@@ -3,14 +3,17 @@ using FitConnect.Api.Contracts.Cooperations;
 using FitConnect.Api.Contracts.Credentials;
 using FitConnect.Api.Contracts.Exercises;
 using FitConnect.Api.Contracts.PricingTiers;
+using FitConnect.Api.Contracts.TrainerReviews;
 using FitConnect.Api.Contracts.Trainers;
 using FitConnect.Application.Common;
 using FitConnect.Application.Cooperations;
 using FitConnect.Application.Credentials;
 using FitConnect.Application.Exercises;
+using FitConnect.Application.Reviews;
 using FitConnect.Application.Users;
 using FitConnect.Domain.Cooperations;
 using FitConnect.Domain.Enums;
+using FitConnect.Domain.Reviews;
 using FitConnect.Domain.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -28,6 +31,7 @@ public class TrainersController : ControllerBase
     private readonly ExerciseService exerciseService;
     private readonly ICurrentUserAccessor currentUser;
     private readonly CredentialService credentialService;
+    private readonly TrainerReviewService trainerReviewService;
 
     public TrainersController(
         TrainerService trainerService,
@@ -35,7 +39,8 @@ public class TrainersController : ControllerBase
         PricingTierService pricingTierService,
         ExerciseService exerciseService,
         ICurrentUserAccessor currentUser,
-        CredentialService credentialService)
+        CredentialService credentialService,
+        TrainerReviewService trainerReviewService)
     {
         this.trainerService = trainerService;
         this.cooperationService = cooperationService;
@@ -43,6 +48,7 @@ public class TrainersController : ControllerBase
         this.exerciseService = exerciseService;
         this.currentUser = currentUser;
         this.credentialService = credentialService;
+        this.trainerReviewService = trainerReviewService;
     }
 
     [HttpGet]
@@ -69,9 +75,12 @@ public class TrainersController : ControllerBase
         }
 
         var result = await trainerService.GetAllAsync(page, pageSize, filter, cancellationToken);
+        var trainerIds = result.Items.Select(t => t.Id).ToList();
+        var summaries = await trainerReviewService.GetSummariesAsync(trainerIds, cancellationToken);
+
         return Ok(new PagedResponse<TrainerResponse>
         {
-            Items = result.Items.Select(ToResponse).ToList(),
+            Items = result.Items.Select(t => ToResponse(t, summaries[t.Id])).ToList(),
             TotalCount = result.TotalCount,
             Page = result.Page,
             PageSize = result.PageSize
@@ -82,7 +91,13 @@ public class TrainersController : ControllerBase
     public async Task<ActionResult<TrainerResponse>> GetById(Guid id, CancellationToken cancellationToken)
     {
         var trainer = await trainerService.GetByIdAsync(id, cancellationToken);
-        return trainer is null ? NotFound() : Ok(ToResponse(trainer));
+        if (trainer is null)
+        {
+            return NotFound();
+        }
+
+        var summary = await trainerReviewService.GetSummaryAsync(id, cancellationToken);
+        return Ok(ToResponse(trainer, summary));
     }
 
     [HttpPatch("{id:guid}")]
@@ -180,7 +195,7 @@ public class TrainersController : ControllerBase
     public async Task<ActionResult<TrainerResponse>> Approve(Guid id, CancellationToken cancellationToken)
     {
         var trainer = await trainerService.ApproveAsync(id, cancellationToken);
-        return Ok(ToResponse(trainer));
+        return Ok(ToResponse(trainer, TrainerReviewSummary.Empty));
     }
 
     [HttpPost("{id:guid}/reject")]
@@ -188,10 +203,25 @@ public class TrainersController : ControllerBase
     public async Task<ActionResult<TrainerResponse>> Reject(Guid id, CancellationToken cancellationToken)
     {
         var trainer = await trainerService.RejectAsync(id, cancellationToken);
-        return Ok(ToResponse(trainer));
+        return Ok(ToResponse(trainer, TrainerReviewSummary.Empty));
+    }
+    
+    [HttpGet("{id:guid}/reviews")]
+    public async Task<ActionResult<IReadOnlyList<TrainerReviewResponse>>> GetReviews(Guid id, CancellationToken cancellationToken)
+    {
+        var reviews = await trainerReviewService.GetForTrainerAsync(id, cancellationToken);
+        return Ok(reviews.Select(TrainerReviewResponse.FromDomain));
     }
 
-    private static TrainerResponse ToResponse(Trainer trainer) => new()
+    [HttpPut("{id:guid}/reviews")]
+    [Authorize(Roles = nameof(UserRole.Client))]
+    public async Task<ActionResult<TrainerReviewResponse>> UpsertReview(Guid id, UpsertTrainerReviewRequest request, CancellationToken cancellationToken)
+    {
+        var review = await trainerReviewService.UpsertAsync(id, currentUser.UserId!.Value, request.Rating, request.Comment, cancellationToken);
+        return Ok(TrainerReviewResponse.FromDomain(review));
+    }
+
+    private static TrainerResponse ToResponse(Trainer trainer, TrainerReviewSummary summary) => new()
     {
         Id = trainer.Id,
         Name = trainer.Name,
@@ -201,6 +231,8 @@ public class TrainersController : ControllerBase
         RegistrationStatus = trainer.RegistrationStatus,
         Education = trainer.Education,
         Bio = trainer.Bio,
-        ApprovedAt = trainer.ApprovedAt
+        ApprovedAt = trainer.ApprovedAt,
+        AverageRating = summary.AverageRating,
+        ReviewCount = summary.ReviewCount
     };
 }
