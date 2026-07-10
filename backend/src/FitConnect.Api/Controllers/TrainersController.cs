@@ -1,10 +1,12 @@
 ﻿using FitConnect.Api.Contracts.Common;
 using FitConnect.Api.Contracts.Cooperations;
+using FitConnect.Api.Contracts.Credentials;
 using FitConnect.Api.Contracts.Exercises;
 using FitConnect.Api.Contracts.PricingTiers;
 using FitConnect.Api.Contracts.Trainers;
 using FitConnect.Application.Common;
 using FitConnect.Application.Cooperations;
+using FitConnect.Application.Credentials;
 using FitConnect.Application.Exercises;
 using FitConnect.Application.Users;
 using FitConnect.Domain.Cooperations;
@@ -25,22 +27,48 @@ public class TrainersController : ControllerBase
     private readonly PricingTierService pricingTierService;
     private readonly ExerciseService exerciseService;
     private readonly ICurrentUserAccessor currentUser;
+    private readonly CredentialService credentialService;
 
-    public TrainersController(TrainerService trainerService, CooperationService cooperationService,
-        PricingTierService pricingTierService, ExerciseService exerciseService, ICurrentUserAccessor currentUser)
+    public TrainersController(
+        TrainerService trainerService,
+        CooperationService cooperationService,
+        PricingTierService pricingTierService,
+        ExerciseService exerciseService,
+        ICurrentUserAccessor currentUser,
+        CredentialService credentialService)
     {
         this.trainerService = trainerService;
         this.cooperationService = cooperationService;
         this.pricingTierService = pricingTierService;
         this.exerciseService = exerciseService;
-        this.currentUser = currentUser; 
+        this.currentUser = currentUser;
+        this.credentialService = credentialService;
     }
 
     [HttpGet]
     public async Task<ActionResult<PagedResponse<TrainerResponse>>> GetAll(
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? registrationStatus = null, CancellationToken cancellationToken = default)
     {
-        var result = await trainerService.GetAllAsync(page, pageSize, cancellationToken);
+        RegistrationStatus? filter;
+
+        if (currentUser.Role != UserRole.Admin)
+        {
+            filter = RegistrationStatus.Approved;
+        }
+        else if (string.IsNullOrWhiteSpace(registrationStatus))
+        {
+            filter = null;
+        }
+        else if (Enum.TryParse<RegistrationStatus>(registrationStatus, ignoreCase: true, out var parsed))
+        {
+            filter = parsed;
+        }
+        else
+        {
+            return BadRequest($"Unknown registrationStatus '{registrationStatus}'.");
+        }
+
+        var result = await trainerService.GetAllAsync(page, pageSize, filter, cancellationToken);
         return Ok(new PagedResponse<TrainerResponse>
         {
             Items = result.Items.Select(ToResponse).ToList(),
@@ -121,6 +149,46 @@ public class TrainersController : ControllerBase
     {
         var exercise = await exerciseService.CreateAsync(id, request.Name, request.DefaultReps, request.DefaultSets, cancellationToken);
         return CreatedAtAction(nameof(ExercisesController.GetById), "Exercises", new { id = exercise.Id }, ExerciseResponse.FromDomain(exercise));
+    }
+    
+    [HttpGet("{id:guid}/credentials")]
+    [Authorize(Policy = "SameUserOrAdmin")]
+    public async Task<ActionResult<IReadOnlyList<CredentialResponse>>> GetCredentials(Guid id, CancellationToken cancellationToken)
+    {
+        var credentials = await credentialService.GetForTrainerAsync(id, cancellationToken);
+        return Ok(credentials.Select(CredentialResponse.FromDomain));
+    }
+
+    [HttpPost("{id:guid}/credentials")]
+    [Authorize(Policy = "SameUserOrAdmin")]
+    public async Task<ActionResult<CredentialResponse>> AddCredential(Guid id, CredentialRequest request, CancellationToken cancellationToken)
+    {
+        var credential = await credentialService.AddAsync(id, request.Type, request.FileUrl, request.IssuedBy, cancellationToken);
+        return CreatedAtAction(nameof(GetCredentials), new { id }, CredentialResponse.FromDomain(credential));
+    }
+
+    [HttpDelete("{id:guid}/credentials/{credentialId:guid}")]
+    [Authorize(Policy = "SameUserOrAdmin")]
+    public async Task<IActionResult> DeleteCredential(Guid id, Guid credentialId, CancellationToken cancellationToken)
+    {
+        await credentialService.DeleteAsync(credentialId, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("{id:guid}/approve")]
+    [Authorize(Roles = nameof(UserRole.Admin))]
+    public async Task<ActionResult<TrainerResponse>> Approve(Guid id, CancellationToken cancellationToken)
+    {
+        var trainer = await trainerService.ApproveAsync(id, cancellationToken);
+        return Ok(ToResponse(trainer));
+    }
+
+    [HttpPost("{id:guid}/reject")]
+    [Authorize(Roles = nameof(UserRole.Admin))]
+    public async Task<ActionResult<TrainerResponse>> Reject(Guid id, CancellationToken cancellationToken)
+    {
+        var trainer = await trainerService.RejectAsync(id, cancellationToken);
+        return Ok(ToResponse(trainer));
     }
 
     private static TrainerResponse ToResponse(Trainer trainer) => new()

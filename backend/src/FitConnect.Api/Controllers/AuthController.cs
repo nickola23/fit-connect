@@ -2,6 +2,7 @@
 using FitConnect.Api.Contracts.Clients;
 using FitConnect.Api.Contracts.Trainers;
 using FitConnect.Application.Auth;
+using FitConnect.Application.Credentials;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -37,8 +38,12 @@ public class AuthController : ControllerBase
     [HttpPost("register/trainer")]
     public async Task<ActionResult<AuthResponse>> RegisterTrainer(CreateTrainerRequest request, CancellationToken cancellationToken)
     {
+        var credentials = request.Credentials
+            .Select(c => new CredentialInput(c.Type, c.FileUrl, c.IssuedBy))
+            .ToList();
+
         var result = await authService.RegisterTrainerAsync(
-            request.Name, request.Email, request.Password, request.Language, request.Education, request.Bio, cancellationToken);
+            request.Name, request.Email, request.Password, request.Language, request.Education, request.Bio, credentials, cancellationToken);
         return Ok(ToResponse(result));
     }
 
