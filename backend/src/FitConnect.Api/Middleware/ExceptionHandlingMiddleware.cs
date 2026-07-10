@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using FitConnect.Domain.Exceptions;
+using FitConnect.Domain.Exceptions.Credentials;
 using FitConnect.Domain.Exceptions.Trainings;
 using Microsoft.AspNetCore.Mvc;
 
@@ -107,6 +108,22 @@ public class ExceptionHandlingMiddleware
             await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
         }
         catch (TrainingReviewAlreadyExistsException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
+        catch (CredentialNotFoundException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.NotFound, ex.Message);
+        }
+        catch (TrainerRequiresCredentialException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.BadRequest, ex.Message);
+        }
+        catch (TrainerRegistrationAlreadyProcessedException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
+        catch (CannotRemoveLastCredentialException ex)
         {
             await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
         }

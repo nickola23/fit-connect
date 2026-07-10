@@ -1,4 +1,5 @@
 ﻿using FitConnect.Application.Common;
+using FitConnect.Application.Credentials;
 using FitConnect.Application.Users;
 using FitConnect.Domain.Enums;
 using FitConnect.Domain.Exceptions;
@@ -50,9 +51,9 @@ public class AuthService
 
     public async Task<AuthResult> RegisterTrainerAsync(
         string name, string email, string password, string language,
-        string? education, string? bio, CancellationToken cancellationToken = default)
+        string? education, string? bio, IReadOnlyList<CredentialInput> credentials, CancellationToken cancellationToken = default)
     {
-        var trainer = await trainerService.CreateAsync(name, email, password, language, education, bio, cancellationToken);
+        var trainer = await trainerService.CreateAsync(name, email, password, language, education, bio, credentials, cancellationToken);
         return BuildAuthResult(trainer.Id, trainer.Name, trainer.Email, UserRole.Trainer);
     }
 

@@ -1,4 +1,5 @@
 ﻿using FitConnect.Domain.Enums;
+using FitConnect.Domain.Exceptions.Credentials;
 
 namespace FitConnect.Domain.Users;
 
@@ -38,12 +39,22 @@ public class Trainer : User
 
     public void Approve()
     {
+        EnsurePending();
         RegistrationStatus = RegistrationStatus.Approved;
         ApprovedAt = DateTimeOffset.UtcNow;
     }
 
     public void Reject()
     {
+        EnsurePending();
         RegistrationStatus = RegistrationStatus.Rejected;
+    }
+
+    private void EnsurePending()
+    {
+        if (RegistrationStatus != RegistrationStatus.Pending)
+        {
+            throw new TrainerRegistrationAlreadyProcessedException(Id, RegistrationStatus);
+        }
     }
 }

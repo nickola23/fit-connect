@@ -1,4 +1,7 @@
-﻿namespace FitConnect.Api.Contracts.Trainers;
+﻿using System.ComponentModel.DataAnnotations;
+using FitConnect.Api.Contracts.Credentials;
+
+namespace FitConnect.Api.Contracts.Trainers;
 
 public class CreateTrainerRequest
 {
@@ -8,4 +11,7 @@ public class CreateTrainerRequest
     public string Language { get; init; } = "sr";
     public string? Education { get; init; }
     public string? Bio { get; init; }
+
+    [MinLength(1)]
+    public required IReadOnlyList<CredentialRequest> Credentials { get; init; }
 }

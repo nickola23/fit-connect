@@ -5,6 +5,7 @@ using FitConnect.Api.Middleware;
 using FitConnect.Application.Auth;
 using FitConnect.Application.Common;
 using FitConnect.Application.Cooperations;
+using FitConnect.Application.Credentials;
 using FitConnect.Application.Equipment;
 using FitConnect.Application.Exercises;
 using FitConnect.Application.Trainings;
@@ -92,6 +93,9 @@ builder.Services.AddScoped<IAuthorizationHandler, TrainingParticipantOrAdminAuth
 builder.Services.AddScoped<IAuthorizationHandler, TrainingTrainerOrAdminAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, TrainingTrainerOnlyAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, TrainingExerciseClientOwnerAuthorizationHandler>();
+
+builder.Services.AddScoped<ICredentialRepository, CredentialRepository>();
+builder.Services.AddScoped<CredentialService>();
 
 var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()!;
 
