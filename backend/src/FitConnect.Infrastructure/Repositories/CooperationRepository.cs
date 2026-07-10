@@ -210,4 +210,22 @@ public class CooperationRepository : ICooperationRepository
             reader.IsDBNull(endDateOrdinal) ? null : reader.GetFieldValue<DateOnly>(endDateOrdinal),
             reader.GetBoolean(reader.GetOrdinal("is_free_trial")));
     }
+    
+    public async Task<bool> ExistsCooperationBetweenAsync(Guid trainerId, Guid clientId, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+
+        const string sql = """
+                           SELECT EXISTS(
+                               SELECT 1 FROM cooperations
+                               WHERE trainer_id = @trainerId AND client_id = @clientId
+                                 AND status IN ('ACCEPTED', 'ACTIVE', 'ENDED')
+                           )
+                           """;
+
+        await using var command = CreateCommand(connection, sql);
+        command.Parameters.AddWithValue("trainerId", trainerId);
+        command.Parameters.AddWithValue("clientId", clientId);
+        return (bool)(await command.ExecuteScalarAsync(cancellationToken))!;
+    }
 }
