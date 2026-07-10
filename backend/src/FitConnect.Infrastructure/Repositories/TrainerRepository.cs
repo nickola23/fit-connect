@@ -1,6 +1,7 @@
 ﻿using System.Data.Common;
 using FitConnect.Application.Common;
 using FitConnect.Application.Users;
+using FitConnect.Domain.Credentials;
 using FitConnect.Domain.Enums;
 using FitConnect.Domain.Users;
 
@@ -31,24 +32,38 @@ public class TrainerRepository : UserRepositoryBase, ITrainerRepository
         return await reader.ReadAsync(cancellationToken) ? MapTrainer(reader) : null;
     }
 
-    public async Task<PagedResult<Trainer>> GetAllAsync(int page, int pageSize, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<Trainer>> GetAllAsync(int page, int pageSize, RegistrationStatus? statusFilter = null, CancellationToken cancellationToken = default)
     {
         await using var connection = await ConnectionFactory.CreateOpenConnectionAsync(cancellationToken);
 
-        const string countSql = "SELECT COUNT(*) FROM trainers";
-        await using var countCommand = CreateCommand(connection, countSql);
-        var totalCount = (long)(await countCommand.ExecuteScalarAsync(cancellationToken))!;
-
-        const string sql = """
+        var countSql = "SELECT COUNT(*) FROM trainers t";
+        var sql = """
             SELECT u.id, u.name, u.email, u.password_hash, u.language, u.created_at,
                    t.registration_status, t.education, t.bio, t.approved_at
             FROM users u
             INNER JOIN trainers t ON t.user_id = u.id
-            ORDER BY u.name
-            LIMIT @pageSize OFFSET @offset
             """;
 
+        if (statusFilter is not null)
+        {
+            countSql += " WHERE t.registration_status = @status::registration_status";
+            sql += " WHERE t.registration_status = @status::registration_status";
+        }
+
+        sql += " ORDER BY u.name LIMIT @pageSize OFFSET @offset";
+
+        await using var countCommand = CreateCommand(connection, countSql);
+        if (statusFilter is not null)
+        {
+            countCommand.Parameters.AddWithValue("status", statusFilter.Value.ToString().ToUpperInvariant());
+        }
+        var totalCount = (long)(await countCommand.ExecuteScalarAsync(cancellationToken))!;
+
         await using var command = CreateCommand(connection, sql);
+        if (statusFilter is not null)
+        {
+            command.Parameters.AddWithValue("status", statusFilter.Value.ToString().ToUpperInvariant());
+        }
         command.Parameters.AddWithValue("pageSize", pageSize);
         command.Parameters.AddWithValue("offset", (page - 1) * pageSize);
 
@@ -62,21 +77,38 @@ public class TrainerRepository : UserRepositoryBase, ITrainerRepository
         return new PagedResult<Trainer> { Items = trainers, TotalCount = (int)totalCount, Page = page, PageSize = pageSize };
     }
 
-    public async Task<Trainer> CreateAsync(Trainer trainer, CancellationToken cancellationToken = default)
+    public async Task<Trainer> CreateAsync(Trainer trainer, IReadOnlyList<Credential> credentials, CancellationToken cancellationToken = default)
     {
         await using var connection = await ConnectionFactory.CreateOpenConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
 
         await InsertUserAsync(connection, transaction, trainer, "TRAINER", cancellationToken);
 
-        const string sql = """
+        const string trainerSql = """
             INSERT INTO trainers (user_id, registration_status, education, bio, approved_at)
             VALUES (@id, @status::registration_status, @education, @bio, @approvedAt)
             """;
 
-        await using (var command = CreateCommand(connection, sql, transaction))
+        await using (var command = CreateCommand(connection, trainerSql, transaction))
         {
             AddTrainerParameters(command, trainer);
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        const string credentialSql = """
+            INSERT INTO credentials (id, trainer_id, type, file_url, issued_by, upload_date)
+            VALUES (@id, @trainerId, @type::credential_type, @fileUrl, @issuedBy, @uploadDate)
+            """;
+
+        foreach (var credential in credentials)
+        {
+            await using var command = CreateCommand(connection, credentialSql, transaction);
+            command.Parameters.AddWithValue("id", credential.Id);
+            command.Parameters.AddWithValue("trainerId", credential.TrainerId);
+            command.Parameters.AddWithValue("type", credential.Type == CredentialType.CourseCertificate ? "COURSE_CERTIFICATE" : credential.Type.ToString().ToUpperInvariant());
+            command.Parameters.AddWithValue("fileUrl", credential.FileUrl);
+            command.Parameters.AddWithValue("issuedBy", (object?)credential.IssuedBy ?? DBNull.Value);
+            command.Parameters.AddWithValue("uploadDate", credential.UploadDate);
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
 
