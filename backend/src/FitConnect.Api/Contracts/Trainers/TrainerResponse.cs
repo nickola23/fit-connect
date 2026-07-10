@@ -13,4 +13,6 @@ public class TrainerResponse
     public string? Education { get; init; }
     public string? Bio { get; init; }
     public DateTimeOffset? ApprovedAt { get; init; }
+    public double? AverageRating { get; init; }
+    public required int ReviewCount { get; init; }
 }

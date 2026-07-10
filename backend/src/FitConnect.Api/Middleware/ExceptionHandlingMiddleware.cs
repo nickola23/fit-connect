@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using FitConnect.Domain.Exceptions;
 using FitConnect.Domain.Exceptions.Credentials;
+using FitConnect.Domain.Exceptions.Reviews;
 using FitConnect.Domain.Exceptions.Trainings;
 using Microsoft.AspNetCore.Mvc;
 
@@ -124,6 +125,10 @@ public class ExceptionHandlingMiddleware
             await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
         }
         catch (CannotRemoveLastCredentialException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
+        catch (ClientHasNotCooperatedWithTrainerException ex)
         {
             await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
         }
