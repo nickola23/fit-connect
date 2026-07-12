@@ -1,16 +1,36 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { login, ApiError } from "@/lib/api-client";
+import { saveSession } from "@/lib/auth-storage";
 
 export default function Auth() {
-  const [username, setUsername] = useState("");
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
-    // TODO: povezati sa backendom kada API bude spreman
+    setSubmitting(true);
+
+    try {
+      const { token, user } = await login({ email, password });
+      saveSession({ token, user });
+      toast.success(`Dobrodošao/la, ${user.name}!`);
+      navigate("/");
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        toast.error("Pogrešan email ili lozinka");
+      } else {
+        toast.error("Prijava nije uspela", { description: error.message });
+      }
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -29,19 +49,20 @@ export default function Auth() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <label
-                htmlFor="username"
+                htmlFor="email"
                 className="text-sm font-medium leading-none text-foreground"
               >
-                Korisničko ime
+                Email
               </label>
               <Input
-                id="username"
-                name="username"
-                type="text"
-                autoComplete="username"
-                placeholder="npr. marko123"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                placeholder="npr. marko@fitconnect.rs"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
 
@@ -60,11 +81,12 @@ export default function Auth() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
               />
             </div>
 
-            <Button type="submit" className="w-full">
-              Prijavi se
+            <Button type="submit" className="w-full" disabled={submitting}>
+              {submitting ? "Prijavljivanje..." : "Prijavi se"}
             </Button>
           </form>
 

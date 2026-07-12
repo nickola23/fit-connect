@@ -22,7 +22,7 @@ INSERT INTO admins (user_id) VALUES
 INSERT INTO trainers (user_id, registration_status, education, bio, approved_at) VALUES
 ('20000000-0000-0000-0000-000000000001', 'APPROVED', 'Fakultet sporta i fizičkog vaspitanja, Beograd', 'Sertifikovani personalni trener sa preko 5 godina iskustva u hipertrofiji i kondiciji.', now() - INTERVAL '30 days'),
 ('20000000-0000-0000-0000-000000000002', 'APPROVED', 'FISAF International', 'Specijalizovana za funkcionalni trening, pilates i rehabilitaciju.', now() - INTERVAL '15 days');
-
+ 
 INSERT INTO clients (user_id, goal, training_location, free_trial_used) VALUES
 ('30000000-0000-0000-0000-000000000001', 'Povećanje mišićne mase i snage.', 'GYM', TRUE),
 ('30000000-0000-0000-0000-000000000002', 'Redukcija telesne mase i poboljšanje kondicije.', 'HOME', FALSE);
