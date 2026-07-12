@@ -1,3 +1,5 @@
+import { getToken } from "@/lib/auth-storage";
+
 const API_BASE_URL = "http://localhost:5089/api";
 
 class ApiError extends Error {
@@ -6,6 +8,12 @@ class ApiError extends Error {
     this.status = status;
     this.body = body;
   }
+}
+
+/** Adds the Bearer token from the stored session, if present. */
+function authHeaders() {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 async function request(path, options = {}) {
@@ -75,6 +83,57 @@ export function registerTrainer({ name, email, password, education, bio, credent
       bio,
       credentials,
     }),
+  });
+}
+
+/** GET /api/trainers/{id} -> TrainerResponse */
+export function getTrainerById(id) {
+  return request(`/trainers/${id}`, {
+    headers: authHeaders(),
+  });
+}
+
+/** PATCH /api/trainers/{id} */
+export function updateTrainerById(id, patch) {
+  return request(`/trainers/${id}`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify(patch),
+  });
+}
+
+/** GET /api/trainers/{id}/credentials -> CredentialResponse[] */
+export function listTrainerCredentials(trainerId) {
+  return request(`/trainers/${trainerId}/credentials`, {
+    headers: authHeaders(),
+  });
+}
+
+/** GET /api/trainers/{id}/exercises -> ExerciseResponse[] */
+export function listTrainerExercises(trainerId) {
+  return request(`/trainers/${trainerId}/exercises`, {
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/trainers/{id}/exercises -> ExerciseResponse */
+export function createTrainerExercise(trainerId, { name, description, defaultReps, defaultSets }) {
+  const payload = { name, defaultReps, defaultSets };
+  if (description) payload.description = description;
+
+  return request(`/trainers/${trainerId}/exercises`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+}
+
+/** POST /api/exercises/{id}/demo-video -> attaches a video URL to an existing exercise */
+export function recordExerciseDemoVideo(exerciseId, url) {
+  return request(`/exercises/${exerciseId}/demo-video`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ url }),
   });
 }
 

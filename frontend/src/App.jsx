@@ -16,6 +16,11 @@ import EquipmentEdit from "@/pages/equipment/EquipmentEdit";
 import AccessoriesList from "@/pages/equipment/AccessoriesList";
 import AccessoriesNew from "@/pages/equipment/AccessoriesNew";
 import AccessoriesEdit from "@/pages/equipment/AccessoriesEdit";
+import TrainerHome from "@/pages/trainer/TrainerHome";
+import TrainerProfile from "@/pages/trainer/TrainerProfile";
+import TrainerProfileEdit from "@/pages/trainer/TrainerProfileEdit";
+import ExerciseNew from "@/pages/trainer/ExerciseNew";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 function App() {
   return (
@@ -40,6 +45,40 @@ function App() {
         <Route path="/my-equipment/accessory" element={<AccessoriesList />} />
         <Route path="/my-equipment/accessory/new" element={<AccessoriesNew />} />
         <Route path="/my-equipment/accessory/:id" element={<AccessoriesEdit />} />
+
+        {/* Trainer routes render their own shell (no shared Layout) */}
+        <Route
+          path="/trainer"
+          element={
+            <ProtectedRoute allowedRoles={["Trainer"]}>
+              <TrainerHome />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/trainer/profile"
+          element={
+            <ProtectedRoute allowedRoles={["Trainer"]}>
+              <TrainerProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/trainer/profile/edit"
+          element={
+            <ProtectedRoute allowedRoles={["Trainer"]}>
+              <TrainerProfileEdit />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/trainer/exercises/new"
+          element={
+            <ProtectedRoute allowedRoles={["Trainer"]}>
+              <ExerciseNew />
+            </ProtectedRoute>
+          }
+        />
 
         <Route path="*" element={<NotFound />} />
       </Routes>
