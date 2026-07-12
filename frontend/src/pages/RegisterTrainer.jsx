@@ -102,7 +102,7 @@ export default function RegisterTrainer() {
       toast.success("Zahtev za registraciju je poslat!", {
         description: "Nalog čeka odobrenje administratora.",
       });
-      navigate("/");
+      navigate("/trainer");
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         toast.error("Email je već registrovan");
