@@ -3,13 +3,19 @@ import Layout from "@/components/layout/Layout";
 import Home from "@/pages/Home";
 import Auth from "@/pages/Auth";
 import RegisterTrainer from "@/pages/RegisterTrainer";
-import RegisterClient from "@/pages/RegisterClient";
+import {RegisterClient} from "@/pages/RegisterClient";
 import Trainers from "@/pages/Trainers";
 import Help from "@/pages/Help";
 import Terms from "@/pages/Terms";
 import Privacy from "@/pages/Privacy";
 import Contact from "@/pages/Contact";
 import NotFound from "@/pages/NotFound";
+import EquipmentList from "@/pages/equipment/EquipmentList";
+import EquipmentNew from "@/pages/equipment/EquipmentNew";
+import EquipmentEdit from "@/pages/equipment/EquipmentEdit";
+import AccessoriesList from "@/pages/equipment/AccessoriesList";
+import AccessoriesNew from "@/pages/equipment/AccessoriesNew";
+import AccessoriesEdit from "@/pages/equipment/AccessoriesEdit";
 
 function App() {
   return (
@@ -25,8 +31,17 @@ function App() {
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/contact" element={<Contact />} />
-          <Route path="*" element={<NotFound />} />
         </Route>
+
+        {/* Equipment catalog routes render their own shell (no shared Layout) */}
+        <Route path="/my-equipment/equipment" element={<EquipmentList />} />
+        <Route path="/my-equipment/equipment/new" element={<EquipmentNew />} />
+        <Route path="/my-equipment/equipment/:id" element={<EquipmentEdit />} />
+        <Route path="/my-equipment/accessory" element={<AccessoriesList />} />
+        <Route path="/my-equipment/accessory/new" element={<AccessoriesNew />} />
+        <Route path="/my-equipment/accessory/:id" element={<AccessoriesEdit />} />
+
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );
