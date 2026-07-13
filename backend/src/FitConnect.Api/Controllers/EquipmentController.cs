@@ -19,9 +19,19 @@ public class EquipmentController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<EquipmentResponse>>> GetAll(CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<EquipmentResponse>>> GetAll([FromQuery] string? type, CancellationToken cancellationToken)
     {
-        var equipment = await equipmentService.GetAllAsync(cancellationToken);
+        EquipmentType? typeFilter = null;
+        if (!string.IsNullOrWhiteSpace(type))
+        {
+            if (!Enum.TryParse<EquipmentType>(type, ignoreCase: true, out var parsed))
+            {
+                return BadRequest($"Unknown type '{type}'. Use 'Apparatus' or 'Accessory'.");
+            }
+            typeFilter = parsed;
+        }
+
+        var equipment = await equipmentService.GetAllAsync(typeFilter, cancellationToken);
         return Ok(equipment.Select(EquipmentResponse.FromDomain));
     }
 
@@ -36,7 +46,7 @@ public class EquipmentController : ControllerBase
     [Authorize(Roles = nameof(UserRole.Admin))]
     public async Task<ActionResult<EquipmentResponse>> Create(CreateEquipmentRequest request, CancellationToken cancellationToken)
     {
-        var equipment = await equipmentService.CreateAsync(request.Name, cancellationToken);
+        var equipment = await equipmentService.CreateAsync(request.Name, request.Type, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = equipment.Id }, EquipmentResponse.FromDomain(equipment));
     }
 
@@ -44,7 +54,7 @@ public class EquipmentController : ControllerBase
     [Authorize(Roles = nameof(UserRole.Admin))]
     public async Task<IActionResult> Update(Guid id, UpdateEquipmentRequest request, CancellationToken cancellationToken)
     {
-        await equipmentService.UpdateAsync(id, request.Name, cancellationToken);
+        await equipmentService.UpdateAsync(id, request.Name, request.Type, cancellationToken);
         return NoContent();
     }
 
