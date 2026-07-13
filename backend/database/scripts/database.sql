@@ -16,6 +16,7 @@ CREATE TYPE notification_type AS ENUM (
     'MEMBERSHIP_EXPIRING',
     'STATISTICS'
 );
+CREATE TYPE equipment_type AS ENUM ('APPARATUS', 'ACCESSORY');
 
 CREATE TABLE users (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -70,7 +71,8 @@ CREATE INDEX idx_pricing_tiers_trainer ON pricing_tiers(trainer_id);
 
 CREATE TABLE equipment (
     id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(150) NOT NULL UNIQUE
+    name VARCHAR(150) NOT NULL UNIQUE,
+    type equipment_type NOT NULL
 );
 
 CREATE TABLE exercises (
