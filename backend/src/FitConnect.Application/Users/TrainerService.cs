@@ -22,8 +22,9 @@ public class TrainerService
     public Task<Trainer?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         trainerRepository.GetByIdAsync(id, cancellationToken);
 
-    public Task<PagedResult<Trainer>> GetAllAsync(int page, int pageSize, RegistrationStatus? statusFilter, CancellationToken cancellationToken = default) =>
-        trainerRepository.GetAllAsync(page, pageSize, statusFilter, cancellationToken);
+    public Task<PagedResult<Trainer>> GetAllAsync(
+        int page, int pageSize, RegistrationStatus? statusFilter, TrainerSortBy sortBy, bool descending, CancellationToken cancellationToken = default) =>
+        trainerRepository.GetAllAsync(page, pageSize, statusFilter, sortBy, descending, cancellationToken);
 
     public async Task<Trainer> CreateAsync(
         string name, string email, string plainTextPassword, string language,
