@@ -42,6 +42,7 @@ INSERT INTO pricing_tiers (id, trainer_id, sessions_per_week, monthly_price, act
 -- =====================================================================
 -- 4. EQUIPMENT & EXERCISES
 -- =====================================================================
+-- 1. Insert Equipment
 INSERT INTO equipment (id, name, type) VALUES
 ('60000000-0000-0000-0000-000000000001', 'Bučice (Dumbbells)', 'ACCESSORY'),
 ('60000000-0000-0000-0000-000000000002', 'Olimpijska šipka i tegovi', 'APPARATUS'),
@@ -55,12 +56,12 @@ INSERT INTO client_equipment (client_id, equipment_id) VALUES
 ('30000000-0000-0000-0000-000000000002', '60000000-0000-0000-0000-000000000004'),
 ('30000000-0000-0000-0000-000000000002', '60000000-0000-0000-0000-000000000005');
 
--- 3. Insert Exercises
-INSERT INTO exercises (id, trainer_id, name, default_reps, default_sets, demo_video_url) VALUES
-('70000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'Benč pres (Flat Bench Press)', 8, 4, 'https://youtube.com/watch?v=demo1'),
-('70000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', 'Čučanj sa šipkom (Barbell Squat)', 6, 4, 'https://youtube.com/watch?v=demo2'),
-('70000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000002', 'Goblet čučanj sa bučicom', 12, 3, 'https://youtube.com/watch?v=demo3'),
-('70000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000002', 'Glute Bridge sa elastičnom trakom', 15, 3, 'https://youtube.com/watch?v=demo4');
+-- 3. Insert Exercises with description
+INSERT INTO exercises (id, trainer_id, name, description, default_reps, default_sets, demo_video_url) VALUES
+('70000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'Benč pres (Flat Bench Press)', 'Klasična vežba za razvoj grudnih mišića, prednjeg ramena i tricepsa na ravnoj klupi.', 8, 4, 'https://youtube.com/watch?v=demo1'),
+('70000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', 'Čučanj sa šipkom (Barbell Squat)', 'Kompleksna vežba za snagu donjeg dela tela sa fokusom na kvadricepse, gluteus i zadnju ložu.', 6, 4, 'https://youtube.com/watch?v=demo2'),
+('70000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000002', 'Goblet čučanj sa bučicom', 'Varijacija čučnja gde se bučica drži ispred grudi, idealna za učenje pravilne forme i aktivaciju jezgra.', 12, 3, 'https://youtube.com/watch?v=demo3'),
+('70000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000002', 'Glute Bridge sa elastičnom trakom', 'Izolaciona vežba za gluteus sa dodatnim otporom trake oko kolena radi bolje aktivacije.', 15, 3, 'https://youtube.com/watch?v=demo4');
 
 -- 4. Insert Exercise Equipment Links
 INSERT INTO exercise_equipment (exercise_id, equipment_id) VALUES
