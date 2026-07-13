@@ -53,7 +53,12 @@ public class TrainersController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<PagedResponse<TrainerResponse>>> GetAll(
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? registrationStatus = null, CancellationToken cancellationToken = default)
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? registrationStatus = null,
+        [FromQuery] string sortBy = "Name",
+        [FromQuery] string? sortDirection = null,
+        CancellationToken cancellationToken = default)
     {
         RegistrationStatus? filter;
 
@@ -65,16 +70,28 @@ public class TrainersController : ControllerBase
         {
             filter = null;
         }
-        else if (Enum.TryParse<RegistrationStatus>(registrationStatus, ignoreCase: true, out var parsed))
+        else if (Enum.TryParse<RegistrationStatus>(registrationStatus, ignoreCase: true, out var parsedStatus))
         {
-            filter = parsed;
+            filter = parsedStatus;
         }
         else
         {
             return BadRequest($"Unknown registrationStatus '{registrationStatus}'.");
         }
 
-        var result = await trainerService.GetAllAsync(page, pageSize, filter, cancellationToken);
+        if (!Enum.TryParse<TrainerSortBy>(sortBy, ignoreCase: true, out var parsedSortBy))
+        {
+            return BadRequest($"Unknown sortBy '{sortBy}'. Use 'Name' or 'AverageRating'.");
+        }
+
+        var descending = sortDirection?.ToUpperInvariant() switch
+        {
+            "DESC" => true,
+            "ASC" => false,
+            _ => parsedSortBy == TrainerSortBy.AverageRating
+        };
+
+        var result = await trainerService.GetAllAsync(page, pageSize, filter, parsedSortBy, descending, cancellationToken);
         var trainerIds = result.Items.Select(t => t.Id).ToList();
         var summaries = await trainerReviewService.GetSummariesAsync(trainerIds, cancellationToken);
 

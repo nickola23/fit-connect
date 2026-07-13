@@ -32,7 +32,8 @@ public class TrainerRepository : UserRepositoryBase, ITrainerRepository
         return await reader.ReadAsync(cancellationToken) ? MapTrainer(reader) : null;
     }
 
-    public async Task<PagedResult<Trainer>> GetAllAsync(int page, int pageSize, RegistrationStatus? statusFilter = null, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<Trainer>> GetAllAsync(int page, int pageSize, RegistrationStatus? statusFilter,
+        TrainerSortBy sortBy, bool descending, CancellationToken cancellationToken = default)
     {
         await using var connection = await ConnectionFactory.CreateOpenConnectionAsync(cancellationToken);
 
@@ -50,7 +51,15 @@ public class TrainerRepository : UserRepositoryBase, ITrainerRepository
             sql += " WHERE t.registration_status = @status::registration_status";
         }
 
-        sql += " ORDER BY u.name LIMIT @pageSize OFFSET @offset";
+        var orderClause = sortBy switch
+        {
+            TrainerSortBy.AverageRating => descending
+                ? "(SELECT AVG(rating) FROM trainer_reviews WHERE trainer_id = t.user_id) DESC NULLS LAST"
+                : "(SELECT AVG(rating) FROM trainer_reviews WHERE trainer_id = t.user_id) ASC NULLS LAST",
+            _ => descending ? "u.name DESC" : "u.name ASC"
+        };
+
+        sql += $" ORDER BY {orderClause} LIMIT @pageSize OFFSET @offset";
 
         await using var countCommand = CreateCommand(connection, countSql);
         if (statusFilter is not null)
