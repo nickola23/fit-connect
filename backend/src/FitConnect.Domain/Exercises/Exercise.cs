@@ -5,21 +5,23 @@ public class Exercise
     public Guid Id { get; }
     public Guid TrainerId { get; }
     public string Name { get; private set; }
+    public string? Description { get; private set; }
     public int DefaultReps { get; private set; }
     public int DefaultSets { get; private set; }
     public string? DemoVideoUrl { get; private set; }
 
-    public Exercise(Guid id, Guid trainerId, string name, int defaultReps, int defaultSets, string? demoVideoUrl)
+    public Exercise(Guid id, Guid trainerId, string name, string? description, int defaultReps, int defaultSets, string? demoVideoUrl)
     {
         Id = id;
         TrainerId = trainerId;
         Name = name;
+        Description = description;
         DefaultReps = defaultReps;
         DefaultSets = defaultSets;
         DemoVideoUrl = demoVideoUrl;
     }
 
-    public void UpdateDetails(string name, int defaultReps, int defaultSets)
+    public void UpdateDetails(string name, string? description, int defaultReps, int defaultSets)
     {
         if (defaultReps <= 0)
         {
@@ -32,6 +34,7 @@ public class Exercise
         }
 
         Name = name;
+        Description = description;
         DefaultReps = defaultReps;
         DefaultSets = defaultSets;
     }

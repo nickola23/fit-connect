@@ -21,7 +21,7 @@ public class ExerciseRepository : IExerciseRepository
         await using var connection = await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
 
         const string sql = """
-            SELECT id, trainer_id, name, default_reps, default_sets, demo_video_url
+            SELECT id, trainer_id, name, description, default_reps, default_sets, demo_video_url
             FROM exercises
             WHERE id = @id
             """;
@@ -38,7 +38,7 @@ public class ExerciseRepository : IExerciseRepository
         await using var connection = await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
 
         const string sql = """
-            SELECT id, trainer_id, name, default_reps, default_sets, demo_video_url
+            SELECT id, trainer_id, name, description, default_reps, default_sets, demo_video_url
             FROM exercises
             WHERE trainer_id = @trainerId
             ORDER BY name
@@ -62,8 +62,8 @@ public class ExerciseRepository : IExerciseRepository
         await using var connection = await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
 
         const string sql = """
-            INSERT INTO exercises (id, trainer_id, name, default_reps, default_sets, demo_video_url)
-            VALUES (@id, @trainerId, @name, @defaultReps, @defaultSets, @demoVideoUrl)
+            INSERT INTO exercises (id, trainer_id, name, description, default_reps, default_sets, demo_video_url)
+            VALUES (@id, @trainerId, @name, @description, @defaultReps, @defaultSets, @demoVideoUrl)
             """;
 
         await using var command = CreateCommand(connection, sql);
@@ -79,7 +79,7 @@ public class ExerciseRepository : IExerciseRepository
 
         const string sql = """
             UPDATE exercises
-            SET name = @name, default_reps = @defaultReps, default_sets = @defaultSets, demo_video_url = @demoVideoUrl
+            SET name = @name, description = @description, default_reps = @defaultReps, default_sets = @defaultSets, demo_video_url = @demoVideoUrl
             WHERE id = @id
             """;
 
@@ -111,6 +111,7 @@ public class ExerciseRepository : IExerciseRepository
         command.Parameters.AddWithValue("id", exercise.Id);
         command.Parameters.AddWithValue("trainerId", exercise.TrainerId);
         command.Parameters.AddWithValue("name", exercise.Name);
+        command.Parameters.AddWithValue("description", (object?)exercise.Description ?? DBNull.Value);
         command.Parameters.AddWithValue("defaultReps", (short)exercise.DefaultReps);
         command.Parameters.AddWithValue("defaultSets", (short)exercise.DefaultSets);
         command.Parameters.AddWithValue("demoVideoUrl", (object?)exercise.DemoVideoUrl ?? DBNull.Value);
@@ -125,11 +126,13 @@ public class ExerciseRepository : IExerciseRepository
 
     private static Exercise Map(DbDataReader reader)
     {
+        var descriptionOrdinal = reader.GetOrdinal("description");
         var demoUrlOrdinal = reader.GetOrdinal("demo_video_url");
         return new Exercise(
             reader.GetGuid(reader.GetOrdinal("id")),
             reader.GetGuid(reader.GetOrdinal("trainer_id")),
             reader.GetString(reader.GetOrdinal("name")),
+            reader.IsDBNull(descriptionOrdinal) ? null : reader.GetString(descriptionOrdinal),
             reader.GetInt16(reader.GetOrdinal("default_reps")),
             reader.GetInt16(reader.GetOrdinal("default_sets")),
             reader.IsDBNull(demoUrlOrdinal) ? null : reader.GetString(demoUrlOrdinal));
