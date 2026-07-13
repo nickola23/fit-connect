@@ -43,7 +43,6 @@ public class EquipmentController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = nameof(UserRole.Admin))]
     public async Task<ActionResult<EquipmentResponse>> Create(CreateEquipmentRequest request, CancellationToken cancellationToken)
     {
         var equipment = await equipmentService.CreateAsync(request.Name, request.Type, cancellationToken);
@@ -51,7 +50,6 @@ public class EquipmentController : ControllerBase
     }
 
     [HttpPatch("{id:guid}")]
-    [Authorize(Roles = nameof(UserRole.Admin))]
     public async Task<IActionResult> Update(Guid id, UpdateEquipmentRequest request, CancellationToken cancellationToken)
     {
         await equipmentService.UpdateAsync(id, request.Name, request.Type, cancellationToken);
@@ -59,7 +57,6 @@ public class EquipmentController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = nameof(UserRole.Admin))]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         await equipmentService.DeleteAsync(id, cancellationToken);
