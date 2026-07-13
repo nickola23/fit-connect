@@ -79,6 +79,7 @@ CREATE TABLE exercises (
     id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     trainer_id     UUID NOT NULL REFERENCES trainers(user_id) ON DELETE CASCADE,
     name           VARCHAR(200) NOT NULL,
+    description    TEXT,
     default_reps   SMALLINT NOT NULL CHECK (default_reps > 0),
     default_sets   SMALLINT NOT NULL CHECK (default_sets > 0),
     demo_video_url VARCHAR(500)
