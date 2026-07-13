@@ -1,4 +1,5 @@
-﻿using FitConnect.Domain.Exceptions;
+﻿using FitConnect.Domain.Enums;
+using FitConnect.Domain.Exceptions;
 
 namespace FitConnect.Application.Equipment;
 
@@ -14,21 +15,23 @@ public class EquipmentService
     public Task<Domain.Equipment.Equipment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         equipmentRepository.GetByIdAsync(id, cancellationToken);
 
-    public Task<IReadOnlyList<Domain.Equipment.Equipment>> GetAllAsync(CancellationToken cancellationToken = default) =>
-        equipmentRepository.GetAllAsync(cancellationToken);
+    public Task<IReadOnlyList<Domain.Equipment.Equipment>> GetAllAsync(
+        EquipmentType? typeFilter = null, 
+        CancellationToken cancellationToken = default) =>
+        equipmentRepository.GetAllAsync(typeFilter, cancellationToken);
 
-    public Task<Domain.Equipment.Equipment> CreateAsync(string name, CancellationToken cancellationToken = default)
+    public Task<Domain.Equipment.Equipment> CreateAsync(string name, EquipmentType type, CancellationToken cancellationToken = default)
     {
-        var equipment = new Domain.Equipment.Equipment(Guid.NewGuid(), name.Trim());
+        var equipment = new Domain.Equipment.Equipment(Guid.NewGuid(), name.Trim(), type);
         return equipmentRepository.CreateAsync(equipment, cancellationToken);
     }
 
-    public async Task UpdateAsync(Guid id, string name, CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(Guid id, string name, EquipmentType type, CancellationToken cancellationToken = default)
     {
         var equipment = await equipmentRepository.GetByIdAsync(id, cancellationToken)
                         ?? throw new EquipmentNotFoundException(id);
 
-        equipment.Rename(name.Trim());
+        equipment.UpdateDetails(name.Trim(), type);
         await equipmentRepository.UpdateAsync(equipment, cancellationToken);
     }
 

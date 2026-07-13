@@ -42,24 +42,27 @@ INSERT INTO pricing_tiers (id, trainer_id, sessions_per_week, monthly_price, act
 -- =====================================================================
 -- 4. EQUIPMENT & EXERCISES
 -- =====================================================================
-INSERT INTO equipment (id, name) VALUES
-('60000000-0000-0000-0000-000000000001', 'Bučice (Dumbbells)'),
-('60000000-0000-0000-0000-000000000002', 'Olimpijska šipka i tegovi'),
-('60000000-0000-0000-0000-000000000003', 'Klupa za benč'),
-('60000000-0000-0000-0000-000000000004', 'Elastične trake (Resistance Bands)'),
-('60000000-0000-0000-0000-000000000005', 'Prostirka za vežbanje');
+INSERT INTO equipment (id, name, type) VALUES
+('60000000-0000-0000-0000-000000000001', 'Bučice (Dumbbells)', 'ACCESSORY'),
+('60000000-0000-0000-0000-000000000002', 'Olimpijska šipka i tegovi', 'APPARATUS'),
+('60000000-0000-0000-0000-000000000003', 'Klupa za benč', 'APPARATUS'),
+('60000000-0000-0000-0000-000000000004', 'Elastične trake (Resistance Bands)', 'ACCESSORY'),
+('60000000-0000-0000-0000-000000000005', 'Prostirka za vežbanje', 'ACCESSORY');
 
+-- 2. Insert Client Equipment Links
 INSERT INTO client_equipment (client_id, equipment_id) VALUES
 ('30000000-0000-0000-0000-000000000002', '60000000-0000-0000-0000-000000000001'),
 ('30000000-0000-0000-0000-000000000002', '60000000-0000-0000-0000-000000000004'),
 ('30000000-0000-0000-0000-000000000002', '60000000-0000-0000-0000-000000000005');
 
+-- 3. Insert Exercises
 INSERT INTO exercises (id, trainer_id, name, default_reps, default_sets, demo_video_url) VALUES
 ('70000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'Benč pres (Flat Bench Press)', 8, 4, 'https://youtube.com/watch?v=demo1'),
 ('70000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', 'Čučanj sa šipkom (Barbell Squat)', 6, 4, 'https://youtube.com/watch?v=demo2'),
 ('70000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000002', 'Goblet čučanj sa bučicom', 12, 3, 'https://youtube.com/watch?v=demo3'),
 ('70000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000002', 'Glute Bridge sa elastičnom trakom', 15, 3, 'https://youtube.com/watch?v=demo4');
 
+-- 4. Insert Exercise Equipment Links
 INSERT INTO exercise_equipment (exercise_id, equipment_id) VALUES
 ('70000000-0000-0000-0000-000000000001', '60000000-0000-0000-0000-000000000002'),
 ('70000000-0000-0000-0000-000000000001', '60000000-0000-0000-0000-000000000003'),

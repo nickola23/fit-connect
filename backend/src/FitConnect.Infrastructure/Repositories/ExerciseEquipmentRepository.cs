@@ -1,5 +1,6 @@
 ﻿using FitConnect.Application.Common;
 using FitConnect.Application.Equipment;
+using FitConnect.Domain.Enums;
 using FitConnect.Domain.Equipment;
 using Npgsql;
 
@@ -19,7 +20,7 @@ public class ExerciseEquipmentRepository : IExerciseEquipmentRepository
         await using var connection = await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
 
         const string sql = """
-            SELECT e.id, e.name
+            SELECT e.id, e.name, e.type
             FROM equipment e
             INNER JOIN exercise_equipment ee ON ee.equipment_id = e.id
             WHERE ee.exercise_id = @exerciseId
@@ -34,7 +35,10 @@ public class ExerciseEquipmentRepository : IExerciseEquipmentRepository
         var items = new List<Equipment>();
         while (await reader.ReadAsync(cancellationToken))
         {
-            items.Add(new Equipment(reader.GetGuid(reader.GetOrdinal("id")), reader.GetString(reader.GetOrdinal("name"))));
+            items.Add(new Equipment(
+                reader.GetGuid(reader.GetOrdinal("id")),
+                reader.GetString(reader.GetOrdinal("name")),
+                Enum.Parse<EquipmentType>(reader.GetString(reader.GetOrdinal("type")), ignoreCase: true)));
         }
 
         return items;
