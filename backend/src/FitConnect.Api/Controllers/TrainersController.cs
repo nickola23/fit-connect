@@ -179,7 +179,7 @@ public class TrainersController : ControllerBase
     [Authorize(Policy = "SameUserOrAdmin")]
     public async Task<ActionResult<ExerciseResponse>> CreateExercise(Guid id, CreateExerciseRequest request, CancellationToken cancellationToken)
     {
-        var exercise = await exerciseService.CreateAsync(id, request.Name, request.DefaultReps, request.DefaultSets, cancellationToken);
+        var exercise = await exerciseService.CreateAsync(id, request.Name, request.Description, request.DefaultReps, request.DefaultSets, cancellationToken);
         return CreatedAtAction(nameof(ExercisesController.GetById), "Exercises", new { id = exercise.Id }, ExerciseResponse.FromDomain(exercise));
     }
     

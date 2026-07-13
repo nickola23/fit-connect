@@ -33,7 +33,7 @@ public class ExercisesController : ControllerBase
     [Authorize(Policy = "ExerciseOwnerOrAdmin")]
     public async Task<IActionResult> Update(Guid id, UpdateExerciseRequest request, CancellationToken cancellationToken)
     {
-        await exerciseService.UpdateAsync(id, request.Name, request.DefaultReps, request.DefaultSets, cancellationToken);
+        await exerciseService.UpdateAsync(id, request.Name, request.Description, request.DefaultReps, request.DefaultSets, cancellationToken);
         return NoContent();
     }
 
