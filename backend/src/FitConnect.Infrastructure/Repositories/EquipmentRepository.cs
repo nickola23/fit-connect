@@ -1,6 +1,7 @@
 ﻿using System.Data.Common;
 using FitConnect.Application.Common;
 using FitConnect.Application.Equipment;
+using FitConnect.Domain.Enums;
 using FitConnect.Domain.Exceptions;
 using Npgsql;
 
@@ -19,7 +20,7 @@ public class EquipmentRepository : IEquipmentRepository
     {
         await using var connection = await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
 
-        const string sql = "SELECT id, name FROM equipment WHERE id = @id";
+        const string sql = "SELECT id, name, type FROM equipment WHERE id = @id";
         await using var command = CreateCommand(connection, sql);
         command.Parameters.AddWithValue("id", id);
 
@@ -27,12 +28,22 @@ public class EquipmentRepository : IEquipmentRepository
         return await reader.ReadAsync(cancellationToken) ? Map(reader) : null;
     }
 
-    public async Task<IReadOnlyList<Domain.Equipment.Equipment>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Domain.Equipment.Equipment>> GetAllAsync(EquipmentType? typeFilter = null, CancellationToken cancellationToken = default)
     {
         await using var connection = await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
 
-        const string sql = "SELECT id, name FROM equipment ORDER BY name";
+        var sql = "SELECT id, name, type FROM equipment";
+        if (typeFilter is not null)
+        {
+            sql += " WHERE type = @type::equipment_type";
+        }
+        sql += " ORDER BY name";
+
         await using var command = CreateCommand(connection, sql);
+        if (typeFilter is not null)
+        {
+            command.Parameters.AddWithValue("type", typeFilter.Value.ToString().ToUpperInvariant());
+        }
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         var items = new List<Domain.Equipment.Equipment>();
@@ -48,10 +59,11 @@ public class EquipmentRepository : IEquipmentRepository
     {
         await using var connection = await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
 
-        const string sql = "INSERT INTO equipment (id, name) VALUES (@id, @name)";
+        const string sql = "INSERT INTO equipment (id, name, type) VALUES (@id, @name, @type::equipment_type)";
         await using var command = CreateCommand(connection, sql);
         command.Parameters.AddWithValue("id", equipment.Id);
         command.Parameters.AddWithValue("name", equipment.Name);
+        command.Parameters.AddWithValue("type", equipment.Type.ToString().ToUpperInvariant());
 
         try
         {
@@ -69,10 +81,11 @@ public class EquipmentRepository : IEquipmentRepository
     {
         await using var connection = await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
 
-        const string sql = "UPDATE equipment SET name = @name WHERE id = @id";
+        const string sql = "UPDATE equipment SET name = @name, type = @type::equipment_type WHERE id = @id";
         await using var command = CreateCommand(connection, sql);
         command.Parameters.AddWithValue("id", equipment.Id);
         command.Parameters.AddWithValue("name", equipment.Name);
+        command.Parameters.AddWithValue("type", equipment.Type.ToString().ToUpperInvariant());
 
         try
         {
@@ -117,5 +130,6 @@ public class EquipmentRepository : IEquipmentRepository
 
     private static Domain.Equipment.Equipment Map(DbDataReader reader) => new(
         reader.GetGuid(reader.GetOrdinal("id")),
-        reader.GetString(reader.GetOrdinal("name")));
+        reader.GetString(reader.GetOrdinal("name")),
+        Enum.Parse<EquipmentType>(reader.GetString(reader.GetOrdinal("type")), ignoreCase: true));
 }
