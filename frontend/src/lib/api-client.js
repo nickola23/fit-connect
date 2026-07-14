@@ -137,4 +137,36 @@ export function recordExerciseDemoVideo(exerciseId, url) {
   });
 }
 
+/** GET /api/trainers/{id}/cooperations?status=... -> CooperationResponse[] */
+export function listTrainerCooperations(trainerId, status) {
+  const query = status ? `?status=${status}` : "";
+  return request(`/trainers/${trainerId}/cooperations${query}`, {
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/cooperations/{id}/accept */
+export function acceptCooperation(id) {
+  return request(`/cooperations/${id}/accept`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/cooperations/{id}/reject */
+export function rejectCooperation(id) {
+  return request(`/cooperations/${id}/reject`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/cooperations/{id}/end */
+export function endCooperation(id) {
+  return request(`/cooperations/${id}/end`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
+
 export { ApiError };
