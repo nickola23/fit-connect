@@ -17,10 +17,13 @@ import AccessoriesList from "@/pages/equipment/AccessoriesList";
 import AccessoriesNew from "@/pages/equipment/AccessoriesNew";
 import AccessoriesEdit from "@/pages/equipment/AccessoriesEdit";
 import TrainerHome from "@/pages/trainer/TrainerHome";
+import ClientHome from "@/pages/client/ClientHome";
 import TrainerProfile from "@/pages/trainer/TrainerProfile";
 import TrainerProfileEdit from "@/pages/trainer/TrainerProfileEdit";
 import ExerciseNew from "@/pages/trainer/ExerciseNew";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import ClientProfile from "./pages/client/ClientProfile";
+import ClientProfileEdit from "./pages/client/ClientProfileEdit";
 
 function App() {
   return (
@@ -76,6 +79,33 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["Trainer"]}>
               <ExerciseNew />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/client"
+          element={
+            <ProtectedRoute allowedRoles={["Client"]}>
+              <ClientHome />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/client/profile"
+          element={
+            <ProtectedRoute allowedRoles={["Client"]}>
+              <ClientProfile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/client/profile/edit"
+          element={
+            <ProtectedRoute allowedRoles={["Client"]}>
+              <ClientProfileEdit />
             </ProtectedRoute>
           }
         />

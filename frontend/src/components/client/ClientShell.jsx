@@ -1,10 +1,21 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Home, User, LogOut } from "lucide-react";
 import { clearSession } from "@/lib/auth-storage";
+import { Dumbbell, Package } from "lucide-react";
 
 const tabs = [
   { to: "/client", label: "Početna", icon: Home, end: true },
   { to: "/client/profile", label: "Moj profil", icon: User, end: false },
+  { 
+    to: "/my-equipment/equipment", 
+    label: "Sprave", 
+    icon: Dumbbell 
+  },
+  { 
+    to: "/my-equipment/accessory", 
+    label: "Rekviziti", 
+    icon: Package 
+  },
 ];
 
 export function ClientShell({ children }) {

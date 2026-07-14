@@ -1,33 +1,41 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
-import { EquipmentShell } from "@/components/equipment/EquipmentShell";
+import { ClientShell } from "@/components/client/ClientShell";
 import { CatalogForm } from "@/components/equipment/CatalogForm";
-import { ACCESSORY_CATEGORIES, getItem } from "@/lib/catalog-store";
+import { getEquipmentById } from "@/lib/api-client";
 import { usePageTitle } from "@/lib/use-page-title";
+import { toast } from "sonner";
 
 export default function AccessoriesEdit() {
   usePageTitle("Izmena rekvizita — FitConnect");
 
   const { id } = useParams();
   const navigate = useNavigate();
-  const item = getItem("accessories", id);
+  const [item, setItem] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!item) {
-      const t = setTimeout(() => navigate("/my-equipment/accessory"), 1500);
-      return () => clearTimeout(t);
-    }
-  }, [item, navigate]);
+    getEquipmentById(id)
+      .then((data) => {
+        setItem(data);
+      })
+      .catch(() => {
+        toast.error("Rekvizit nije pronađen");
+        setTimeout(() => navigate("/my-equipment/accessory"), 1500);
+      })
+      .finally(() => setLoading(false));
+  }, [id, navigate]);
 
   return (
-    <EquipmentShell>
+    <ClientShell>
       <Toaster />
-      {item ? (
+      {loading ? (
+        <div className="text-center text-muted-foreground py-8">Učitavanje...</div>
+      ) : item ? (
         <CatalogForm
           kind="accessories"
-          categories={ACCESSORY_CATEGORIES}
           backHref="/my-equipment/accessory"
           editingId={id}
           initial={item}
@@ -40,6 +48,6 @@ export default function AccessoriesEdit() {
           </Button>
         </div>
       )}
-    </EquipmentShell>
+    </ClientShell>
   );
 }

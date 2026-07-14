@@ -169,4 +169,91 @@ export function endCooperation(id) {
   });
 }
 
+/** GET /api/trainers?sortBy=&sortDirection= -> TrainerResponse[] (non-admins only see Approved) */
+export function listTrainers({ sortBy, sortDirection } = {}) {
+  const params = new URLSearchParams();
+  if (sortBy) params.set("sortBy", sortBy);
+  if (sortDirection) params.set("sortDirection", sortDirection);
+  const query = params.toString() ? `?${params.toString()}` : "";
+  return request(`/trainers${query}`, {
+    headers: authHeaders(),
+  });
+}
+
+/** GET /api/clients/{id}/cooperations -> CooperationResponse[] (history for FR27) */
+export function listClientCooperations(clientId) {
+  return request(`/clients/${clientId}/cooperations`, {
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/cooperations -> CooperationResponse */
+export function createCooperation({ trainerId, pricingTierId, isFreeTrial }) {
+  const payload = { trainerId, isFreeTrial: !!isFreeTrial };
+  if (!isFreeTrial && pricingTierId) payload.pricingTierId = pricingTierId;
+
+  return request("/cooperations", {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+}
+
+/** GET /api/clients/{id} -> ClientResponse */
+export function getClientById(id) {
+  return request(`/clients/${id}`, {
+    headers: authHeaders(),
+  });
+}
+
+/** PATCH /api/clients/{id} */
+export function updateClientById(id, patch) {
+  return request(`/clients/${id}`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify(patch),
+  });
+}
+
+/** GET /api/equipment?type=Apparatus -> EquipmentResponse[] */
+export function getEquipment(type) {
+  const query = type ? `?type=${type}` : "";
+  return request(`/equipment${query}`, {
+    headers: authHeaders(),
+  });
+}
+
+/** GET /api/equipment/{id} -> EquipmentResponse */
+export function getEquipmentById(id) {
+  return request(`/equipment/${id}`, {
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/equipment -> EquipmentResponse */
+export function createEquipment(payload) {
+  return request(`/equipment`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+}
+
+/** PATCH /api/equipment/{id} -> EquipmentResponse */
+export function updateEquipment(id, payload) {
+  return request(`/equipment/${id}`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+}
+
+/** DELETE /api/equipment/{id} */
+export function deleteEquipment(id) {
+  return request(`/equipment/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+}
+
 export { ApiError };

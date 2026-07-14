@@ -46,7 +46,11 @@ export default function ClientHome() {
           setActiveCooperation(null);
           setActiveTrainer(null);
           const trainerList = await listTrainers({ sortBy: "AverageRating" });
-          setTrainers(trainerList);
+          setTrainers(
+            Array.isArray(trainerList)
+              ? trainerList
+              : trainerList?.items ?? trainerList?.data ?? trainerList?.results ?? []
+          );
         }
       })
       .catch((error) => {
@@ -137,19 +141,19 @@ export default function ClientHome() {
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {trainers.map((trainer) => (
-                <Card key={trainer.id}>
+                <Card key={trainer.id} className="flex flex-col">
                   <CardHeader>
                     <CardTitle className="text-base">{trainer.name}</CardTitle>
                   </CardHeader>
-                  <CardContent className="flex flex-col gap-3">
+                  <CardContent className="flex flex-1 flex-col gap-3">
                     {trainer.education && (
                       <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <GraduationCap className="h-3.5 w-3.5" /> {trainer.education}
+                        <GraduationCap className="h-3.5 w-3.5 shrink-0" /> {trainer.education}
                       </p>
                     )}
-                    {trainer.bio && (
-                      <p className="line-clamp-3 text-sm text-muted-foreground">{trainer.bio}</p>
-                    )}
+                    <p className="line-clamp-3 text-sm text-muted-foreground">
+                      {trainer.bio || "Trener još nije dodao opis."}
+                    </p>
                     <p className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Star className="h-4 w-4" />
                       {trainer.averageRating != null ? trainer.averageRating.toFixed(1) : "—"}
@@ -157,6 +161,7 @@ export default function ClientHome() {
                     </p>
                     <Button
                       size="sm"
+                      className="mt-auto"
                       disabled={sendingId === trainer.id}
                       onClick={() => handleSendRequest(trainer.id)}
                     >
