@@ -228,4 +228,22 @@ public class CooperationRepository : ICooperationRepository
         command.Parameters.AddWithValue("clientId", clientId);
         return (bool)(await command.ExecuteScalarAsync(cancellationToken))!;
     }
+    
+    public async Task<bool> HasAcceptedOrActiveCooperationBetweenAsync(Guid trainerId, Guid clientId, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+
+        const string sql = """
+                           SELECT EXISTS(
+                               SELECT 1 FROM cooperations
+                               WHERE trainer_id = @trainerId AND client_id = @clientId
+                                 AND status IN ('ACCEPTED', 'ACTIVE')
+                           )
+                           """;
+
+        await using var command = CreateCommand(connection, sql);
+        command.Parameters.AddWithValue("trainerId", trainerId);
+        command.Parameters.AddWithValue("clientId", clientId);
+        return (bool)(await command.ExecuteScalarAsync(cancellationToken))!;
+    }
 }
