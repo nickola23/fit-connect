@@ -1,4 +1,4 @@
-﻿namespace FitConnect.Domain.Exceptions;
+﻿namespace FitConnect.Domain.Exceptions.Cooperaions;
 
 public class CooperationAlreadyActiveException : Exception
 {
