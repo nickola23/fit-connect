@@ -50,4 +50,7 @@ public class ClientService
 
     public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) =>
         clientRepository.DeleteAsync(id, cancellationToken);
+    
+    public Task<IReadOnlyList<Client>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default) =>
+        clientRepository.GetByIdsAsync(ids, cancellationToken);
 }
