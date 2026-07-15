@@ -1,4 +1,4 @@
-﻿namespace FitConnect.Domain.Exceptions.Cooperaions;
+﻿namespace FitConnect.Domain.Exceptions.Payments;
 
 public class FreeTrialCooperationCannotBePaidException : Exception
 {
