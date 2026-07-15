@@ -1,5 +1,6 @@
 ﻿using FitConnect.Api.Contracts.Trainings;
 using FitConnect.Application.Common;
+using FitConnect.Application.Exercises;
 using FitConnect.Application.Trainings;
 using FitConnect.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -17,17 +18,20 @@ public class TrainingsController : ControllerBase
     private readonly TrainingExerciseService trainingExerciseService;
     private readonly TrainingReviewService trainingReviewService;
     private readonly ICurrentUserAccessor currentUser;
+    private readonly ExerciseService exerciseService;
 
     public TrainingsController(
         TrainingService trainingService,
         TrainingExerciseService trainingExerciseService,
         TrainingReviewService trainingReviewService,
-        ICurrentUserAccessor currentUser)
+        ICurrentUserAccessor currentUser,
+        ExerciseService exerciseService)
     {
         this.trainingService = trainingService;
         this.trainingExerciseService = trainingExerciseService;
         this.trainingReviewService = trainingReviewService;
         this.currentUser = currentUser;
+        this.exerciseService = exerciseService;
     }
 
     [HttpGet("{id:guid}")]
@@ -43,7 +47,16 @@ public class TrainingsController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<TrainingExerciseResponse>>> GetExercises(Guid id, CancellationToken cancellationToken)
     {
         var exercises = await trainingExerciseService.GetForTrainingAsync(id, cancellationToken);
-        return Ok(exercises.Select(TrainingExerciseResponse.FromDomain));
+
+        var exerciseIds = exercises.Select(e => e.ExerciseId).Distinct().ToList();
+        var exerciseDetails = await exerciseService.GetByIdsAsync(exerciseIds, cancellationToken);
+        var exerciseNamesById = exerciseDetails.ToDictionary(e => e.Id, e => e.Name);
+
+        var response = exercises
+            .Where(e => exerciseNamesById.ContainsKey(e.ExerciseId))
+            .Select(e => TrainingExerciseResponse.FromDomain(e, exerciseNamesById[e.ExerciseId]));
+
+        return Ok(response);
     }
 
     [HttpPost("{id:guid}/complete")]
