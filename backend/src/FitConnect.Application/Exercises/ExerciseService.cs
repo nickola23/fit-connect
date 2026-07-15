@@ -50,4 +50,7 @@ public class ExerciseService
 
     public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) =>
         exerciseRepository.DeleteAsync(id, cancellationToken);
+    
+    public Task<IReadOnlyList<Exercise>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default) =>
+        exerciseRepository.GetByIdsAsync(ids, cancellationToken);
 }
