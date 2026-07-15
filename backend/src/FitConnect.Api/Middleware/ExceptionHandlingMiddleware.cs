@@ -3,6 +3,7 @@ using FitConnect.Domain.Exceptions;
 using FitConnect.Domain.Exceptions.Cooperaions;
 using FitConnect.Domain.Exceptions.Credentials;
 using FitConnect.Domain.Exceptions.HealthRecords;
+using FitConnect.Domain.Exceptions.Payments;
 using FitConnect.Domain.Exceptions.Reviews;
 using FitConnect.Domain.Exceptions.Trainings;
 using Microsoft.AspNetCore.Mvc;
@@ -137,6 +138,14 @@ public class ExceptionHandlingMiddleware
         catch (HealthRecordEntryEmptyException ex)
         {
             await WriteProblemAsync(context, HttpStatusCode.BadRequest, ex.Message);
+        }
+        catch (CooperationNotEligibleForPaymentException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
+        catch (FreeTrialCooperationCannotBePaidException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
         }
         catch (Exception ex)
         {
