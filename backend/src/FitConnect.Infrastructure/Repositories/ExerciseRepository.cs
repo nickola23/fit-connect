@@ -137,4 +137,32 @@ public class ExerciseRepository : IExerciseRepository
             reader.GetInt16(reader.GetOrdinal("default_sets")),
             reader.IsDBNull(demoUrlOrdinal) ? null : reader.GetString(demoUrlOrdinal));
     }
+    
+    public async Task<IReadOnlyList<Exercise>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        if (ids.Count == 0)
+        {
+            return Array.Empty<Exercise>();
+        }
+
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+
+        const string sql = """
+                           SELECT id, trainer_id, name, description, default_reps, default_sets, demo_video_url
+                           FROM exercises
+                           WHERE id = ANY(@ids)
+                           """;
+
+        await using var command = CreateCommand(connection, sql);
+        command.Parameters.AddWithValue("ids", ids.ToArray());
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        var exercises = new List<Exercise>();
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            exercises.Add(Map(reader));
+        }
+
+        return exercises;
+    }
 }

@@ -9,4 +9,5 @@ public interface IExerciseRepository
     Task<Exercise> CreateAsync(Exercise exercise, CancellationToken cancellationToken = default);
     Task UpdateAsync(Exercise exercise, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Exercise>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default);
 }
