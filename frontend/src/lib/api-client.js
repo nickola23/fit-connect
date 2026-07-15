@@ -256,4 +256,45 @@ export function deleteEquipment(id) {
   });
 }
 
+/** GET /api/trainers/{id}/pricing-tiers -> PricingTierResponse[] (owning trainer/Admin also sees inactive) */
+export function listTrainerPricingTiers(trainerId) {
+  return request(`/trainers/${trainerId}/pricing-tiers`, {
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/trainers/{id}/pricing-tiers -> PricingTierResponse */
+export function createPricingTier(trainerId, { sessionsPerWeek, monthlyPrice }) {
+  return request(`/trainers/${trainerId}/pricing-tiers`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ sessionsPerWeek, monthlyPrice }),
+  });
+}
+
+/** PATCH /api/pricing-tiers/{id} -> PricingTierResponse (price only, sessionsPerWeek is fixed) */
+export function updatePricingTier(id, { monthlyPrice }) {
+  return request(`/pricing-tiers/${id}`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify({ monthlyPrice }),
+  });
+}
+
+/** POST /api/pricing-tiers/{id}/deactivate */
+export function deactivatePricingTier(id) {
+  return request(`/pricing-tiers/${id}/deactivate`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/pricing-tiers/{id}/activate */
+export function activatePricingTier(id) {
+  return request(`/pricing-tiers/${id}/activate`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
+
 export { ApiError };

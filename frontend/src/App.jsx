@@ -21,6 +21,7 @@ import ClientHome from "@/pages/client/ClientHome";
 import TrainerProfile from "@/pages/trainer/TrainerProfile";
 import TrainerProfileEdit from "@/pages/trainer/TrainerProfileEdit";
 import ExerciseNew from "@/pages/trainer/ExerciseNew";
+import PricingTiers from "@/pages/trainer/PricingTiers";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import ClientProfile from "./pages/client/ClientProfile";
 import ClientProfileEdit from "./pages/client/ClientProfileEdit";
@@ -79,6 +80,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["Trainer"]}>
               <ExerciseNew />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/trainer/pricing-tiers"
+          element={
+            <ProtectedRoute allowedRoles={["Trainer"]}>
+              <PricingTiers />
             </ProtectedRoute>
           }
         />

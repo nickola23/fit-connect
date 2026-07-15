@@ -1,10 +1,11 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { Home, User, Dumbbell, LogOut } from "lucide-react";
+import { Home, User, Dumbbell, LogOut, Wallet } from "lucide-react";
 import { clearSession } from "@/lib/auth-storage";
 
 const tabs = [
   { to: "/trainer", label: "Početna", icon: Home, end: true },
   { to: "/trainer/profile", label: "Moj profil", icon: User, end: false },
+  { to: "/trainer/pricing-tiers", label: "Paketi", icon: Wallet, end: false },
   { to: "/trainer/exercises/new", label: "Nova vežba", icon: Dumbbell, end: false },
 ];
 
