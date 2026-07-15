@@ -138,4 +138,34 @@ public class ClientRepository : UserRepositoryBase, IClientRepository
 
         return new Client(id, name, email, passwordHash, language, createdAt, goal, location, freeTrialUsed);
     }
+    
+    public async Task<IReadOnlyList<Client>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        if (ids.Count == 0)
+        {
+            return Array.Empty<Client>();
+        }
+
+        await using var connection = await ConnectionFactory.CreateOpenConnectionAsync(cancellationToken);
+
+        const string sql = """
+                           SELECT u.id, u.name, u.email, u.password_hash, u.language, u.created_at,
+                                  c.goal, c.training_location, c.free_trial_used
+                           FROM users u
+                           INNER JOIN clients c ON c.user_id = u.id
+                           WHERE u.id = ANY(@ids)
+                           """;
+
+        await using var command = CreateCommand(connection, sql);
+        command.Parameters.AddWithValue("ids", ids.ToArray());
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        var clients = new List<Client>();
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            clients.Add(MapClient(reader));
+        }
+
+        return clients;
+    }
 }
