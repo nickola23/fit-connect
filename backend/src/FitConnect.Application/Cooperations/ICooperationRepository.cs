@@ -13,4 +13,5 @@ public interface ICooperationRepository
     Task<Cooperation> CreateAsync(Cooperation cooperation, CancellationToken cancellationToken = default);
     Task UpdateAsync(Cooperation cooperation, CancellationToken cancellationToken = default);
     Task<bool> ExistsCooperationBetweenAsync(Guid trainerId, Guid clientId, CancellationToken cancellationToken = default);
+    Task<bool> HasAcceptedOrActiveCooperationBetweenAsync(Guid trainerId, Guid clientId, CancellationToken cancellationToken = default);
 }

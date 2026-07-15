@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using FitConnect.Domain.Exceptions;
 using FitConnect.Domain.Exceptions.Credentials;
+using FitConnect.Domain.Exceptions.HealthRecords;
 using FitConnect.Domain.Exceptions.Reviews;
 using FitConnect.Domain.Exceptions.Trainings;
 using Microsoft.AspNetCore.Mvc;
@@ -131,6 +132,10 @@ public class ExceptionHandlingMiddleware
         catch (ClientHasNotCooperatedWithTrainerException ex)
         {
             await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
+        catch (HealthRecordEntryEmptyException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.BadRequest, ex.Message);
         }
         catch (Exception ex)
         {

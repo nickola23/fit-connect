@@ -8,6 +8,7 @@ using FitConnect.Application.Cooperations;
 using FitConnect.Application.Credentials;
 using FitConnect.Application.Equipment;
 using FitConnect.Application.Exercises;
+using FitConnect.Application.HealthRecords;
 using FitConnect.Application.Reviews;
 using FitConnect.Application.Trainings;
 using FitConnect.Application.Users;
@@ -101,6 +102,12 @@ builder.Services.AddScoped<CredentialService>();
 builder.Services.AddScoped<ITrainerReviewRepository, TrainerReviewRepository>();
 builder.Services.AddScoped<TrainerReviewService>();
 
+builder.Services.AddScoped<IHealthRecordRepository, HealthRecordRepository>();
+builder.Services.AddScoped<HealthRecordService>();
+
+builder.Services.AddScoped<IAuthorizationHandler, HealthRecordOwnerOnlyAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, HealthRecordAccessAuthorizationHandler>();
+
 var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()!;
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -130,6 +137,8 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("TrainingTrainerOrAdmin", policy => policy.Requirements.Add(new TrainingTrainerOrAdminRequirement()));
     options.AddPolicy("TrainingTrainerOnly", policy => policy.Requirements.Add(new TrainingTrainerOnlyRequirement()));
     options.AddPolicy("TrainingExerciseClientOwner", policy => policy.Requirements.Add(new TrainingExerciseClientOwnerRequirement()));
+    options.AddPolicy("HealthRecordOwnerOnly", policy => policy.Requirements.Add(new HealthRecordOwnerOnlyRequirement()));
+    options.AddPolicy("HealthRecordAccess", policy => policy.Requirements.Add(new HealthRecordAccessRequirement()));
 });
 
 var app = builder.Build();
