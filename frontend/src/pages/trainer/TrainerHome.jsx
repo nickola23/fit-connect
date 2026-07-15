@@ -10,13 +10,248 @@ import {
   acceptCooperation,
   rejectCooperation,
   endCooperation,
+  recordCooperationPayment,
+  listCooperationPayments,
+  listCooperationTrainings,
+  listTrainingExercises,
+  completeTraining,
+  markTrainingMissed,
+  getTrainingReview,
   ApiError,
 } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Star, Users, Dumbbell, User, Check, X, CalendarPlus, Ban } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Star,
+  Users,
+  Dumbbell,
+  User,
+  Check,
+  X,
+  CalendarPlus,
+  Ban,
+  CreditCard,
+  History,
+  Video,
+  Target,
+} from "lucide-react";
+import { RateTrainingModal } from "@/components/trainer/RateTrainingModal";
 import { usePageTitle } from "@/lib/use-page-title";
+
+const TRAINING_STATUS_VARIANT = {
+  Scheduled: "secondary",
+  Completed: "default",
+  Missed: "destructive",
+};
+
+function TrainingHistoryModal({ open, onOpenChange, cooperationId, clientName, exerciseCatalog }) {
+  const [trainings, setTrainings] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [busyId, setBusyId] = useState(null);
+  const [exerciseNamesByTraining, setExerciseNamesByTraining] = useState({});
+  const [reviewsByTraining, setReviewsByTraining] = useState({});
+  const [rateTarget, setRateTarget] = useState(null);
+
+  function loadExerciseNames(trainingsList) {
+    trainingsList.forEach((t) => {
+      listTrainingExercises(t.id)
+        .then((items) => {
+          const names = items.map(
+            (item) => exerciseCatalog?.get(item.exerciseId) || "Nepoznata vežba"
+          );
+          setExerciseNamesByTraining((prev) => ({ ...prev, [t.id]: names }));
+        })
+        .catch(() => {
+          setExerciseNamesByTraining((prev) => ({ ...prev, [t.id]: [] }));
+        });
+    });
+  }
+
+  function loadReviewStatus(trainingsList) {
+    const completed = trainingsList.filter((t) => t.status === "Completed");
+    completed.forEach((t) => {
+      getTrainingReview(t.id)
+        .then((review) => {
+          setReviewsByTraining((prev) => ({ ...prev, [t.id]: review }));
+        })
+        .catch(() => {
+          // no review yet (404) — leave unmarked
+        });
+    });
+  }
+
+  function load() {
+    if (!cooperationId) return;
+    setLoading(true);
+    listCooperationTrainings(cooperationId)
+      .then((data) => {
+        const sorted = data.sort((a, b) => (a.trainingDate < b.trainingDate ? 1 : -1));
+        setTrainings(sorted);
+        loadExerciseNames(sorted);
+        loadReviewStatus(sorted);
+      })
+      .catch((error) => {
+        const message =
+          error instanceof ApiError ? error.message : "Ne mogu da učitam istoriju treninga.";
+        toast.error("Greška", { description: message });
+      })
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    if (open) load();
+  }, [open, cooperationId]);
+
+  async function handleComplete(id) {
+    setBusyId(id);
+    try {
+      await completeTraining(id);
+      toast.success("Trening je označen kao odrađen.");
+      load();
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "Greška pri označavanju treninga.";
+      toast.error("Greška", { description: message });
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleMissed(id) {
+    setBusyId(id);
+    try {
+      await markTrainingMissed(id);
+      toast.success("Trening je označen kao propušten.");
+      load();
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "Greška pri označavanju treninga.";
+      toast.error("Greška", { description: message });
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Istorija treninga — {clientName}</DialogTitle>
+          <DialogDescription>Svi treninzi dodeljeni ovom klijentu.</DialogDescription>
+        </DialogHeader>
+
+        {loading ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">Učitavanje…</p>
+        ) : trainings.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            Još uvek nema dodeljenih treninga.
+          </p>
+        ) : (
+          <div className="divide-y divide-border">
+            {trainings.map((t) => (
+              <div key={t.id} className="flex flex-col gap-2 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    {t.type === "Live" ? (
+                      <Video className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Target className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <p className="font-medium text-foreground">
+                      {new Date(t.trainingDate).toLocaleDateString("sr-RS")}
+                    </p>
+                    <Badge variant="outline">{t.type === "Live" ? "Uživo" : "Zadati"}</Badge>
+                  </div>
+                  <Badge variant={TRAINING_STATUS_VARIANT[t.status] || "outline"}>
+                    {t.status === "Completed"
+                      ? "Odrađen"
+                      : t.status === "Missed"
+                      ? "Propušten"
+                      : "Zakazan"}
+                  </Badge>
+                </div>
+
+                <p className="text-sm text-muted-foreground">
+                  {exerciseNamesByTraining[t.id] === undefined
+                    ? "Učitavanje vežbi…"
+                    : exerciseNamesByTraining[t.id].length === 0
+                    ? "Nema vežbi"
+                    : exerciseNamesByTraining[t.id].join(", ")}
+                </p>
+
+                {t.status === "Scheduled" && (
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busyId === t.id}
+                      onClick={() => handleComplete(t.id)}
+                    >
+                      <Check className="mr-1 h-4 w-4" /> Označi odrađeno
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busyId === t.id}
+                      onClick={() => handleMissed(t.id)}
+                    >
+                      <X className="mr-1 h-4 w-4" /> Označi propušteno
+                    </Button>
+                  </div>
+                )}
+
+                {t.status === "Completed" && (
+                  <div className="flex flex-col gap-1">
+                    {reviewsByTraining[t.id] ? (
+                      <div className="flex items-start gap-2">
+                        <Badge variant="outline" className="shrink-0">
+                          <Star className="mr-1 h-3 w-3" /> Ocenjeno · {reviewsByTraining[t.id].rating}/5
+                        </Badge>
+                        {reviewsByTraining[t.id].comment && (
+                          <p className="text-sm text-muted-foreground">
+                            {reviewsByTraining[t.id].comment}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => setRateTarget(t)}>
+                        <Star className="mr-1 h-4 w-4" /> Oceni trening
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </DialogContent>
+      </Dialog>
+
+      <RateTrainingModal
+        open={!!rateTarget}
+        onOpenChange={(open) => !open && setRateTarget(null)}
+        training={rateTarget}
+        clientName={clientName}
+        onSubmitted={(review) => {
+          if (rateTarget) {
+            setReviewsByTraining((prev) => ({
+              ...prev,
+              [rateTarget.id]: review || { rating: null, comment: null },
+            }));
+          }
+          setRateTarget(null);
+        }}
+      />
+    </>
+  );
+}
 
 const COOPERATION_SECTIONS = [
   { status: "Pending", title: "Zahtevi na čekanju" },
@@ -25,16 +260,19 @@ const COOPERATION_SECTIONS = [
   { status: "Ended", title: "Završene saradnje" },
 ];
 
-function CooperationCard({ cooperation, onAccept, onReject, onEnd, busy }) {
+function CooperationCard({ cooperation, onAccept, onReject, onEnd, onRequestPayment, onShowHistory, isPaid, busy }) {
   return (
     <Card>
       <CardContent className="flex flex-col gap-3 pt-6">
         <div className="flex items-center justify-between">
           <p className="font-medium text-foreground">
-            Klijent #{cooperation.clientId.slice(0, 8)}
+            {cooperation.clientName || `Klijent #${cooperation.clientId.slice(0, 8)}`}
           </p>
           <Badge variant="outline">{cooperation.status}</Badge>
         </div>
+        {cooperation.clientGoal && (
+          <p className="text-sm text-muted-foreground">Cilj: {cooperation.clientGoal}</p>
+        )}
         <p className="text-xs text-muted-foreground">
           Zahtev poslat: {new Date(cooperation.requestDate).toLocaleDateString("sr-RS")}
           {cooperation.isFreeTrial && " · Besplatni probni termin"}
@@ -52,16 +290,36 @@ function CooperationCard({ cooperation, onAccept, onReject, onEnd, busy }) {
             </>
           )}
 
+          {cooperation.status === "Accepted" && !cooperation.isFreeTrial && !isPaid && (
+            <Button size="sm" disabled={busy} onClick={() => onRequestPayment(cooperation.id)}>
+              <CreditCard className="mr-1 h-4 w-4" /> Zabeleži uplatu
+            </Button>
+          )}
+
+          {cooperation.status !== "Pending" && cooperation.status !== "Rejected" && (
+            <Button size="sm" variant="outline" onClick={() => onShowHistory(cooperation)}>
+              <History className="mr-1 h-4 w-4" /> Istorija treninga
+            </Button>
+          )}
+
           {(cooperation.status === "Accepted" || cooperation.status === "Active") && (
             <Button size="sm" variant="outline" disabled={busy} onClick={() => onEnd(cooperation.id)}>
               <Ban className="mr-1 h-4 w-4" /> Prekini saradnju
             </Button>
           )}
 
-          {cooperation.status === "Active" && (
-            <Button size="sm" asChild>
-              <Link to={`/trainer/cooperations/${cooperation.id}/trainings/new`}>
-                <CalendarPlus className="mr-1 h-4 w-4" /> Kreiraj trening
+          {(cooperation.status === "Active" ||
+            (cooperation.status === "Accepted" && (cooperation.isFreeTrial || isPaid))) && (
+            <Button asChild size="sm" variant="outline" className="w-full">
+              <Link 
+                to="/trainer/trainings/new" 
+                state={{ 
+                  cooperationId: cooperation.id, 
+                  clientName: cooperation.clientName || cooperation.client?.name || "Klijent" 
+                }}
+              >
+                <CalendarPlus className="mr-2 h-4 w-4" />
+                Kreiraj trening
               </Link>
             </Button>
           )}
@@ -79,6 +337,9 @@ export default function TrainerHome() {
   const [cooperations, setCooperations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
+  const [paidCooperationIds, setPaidCooperationIds] = useState(() => new Set());
+  const [checkingPayments, setCheckingPayments] = useState(false);
+  const [historyTarget, setHistoryTarget] = useState(null); // { id, clientName } | null
 
   const user = getUser();
 
@@ -121,6 +382,42 @@ export default function TrainerHome() {
     };
   }, []);
 
+  useEffect(() => {
+    const candidates = cooperations.filter(
+      (c) => c.status === "Accepted" && !c.isFreeTrial
+    );
+    if (candidates.length === 0) return;
+
+    let cancelled = false;
+    setCheckingPayments(true);
+
+    Promise.all(
+      candidates.map((c) =>
+        listCooperationPayments(c.id)
+          .then((payments) => [c.id, payments.length > 0])
+          .catch(() => [c.id, false])
+      )
+    )
+      .then((results) => {
+        if (cancelled) return;
+        setPaidCooperationIds((prev) => {
+          const next = new Set(prev);
+          results.forEach(([id, isPaid]) => {
+            if (isPaid) next.add(id);
+            else next.delete(id);
+          });
+          return next;
+        });
+      })
+      .finally(() => {
+        if (!cancelled) setCheckingPayments(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cooperations]);
+
   async function handleAccept(id) {
     setBusyId(id);
     try {
@@ -143,6 +440,20 @@ export default function TrainerHome() {
       loadCooperations();
     } catch (error) {
       const message = error instanceof ApiError ? error.message : "Greška pri odbijanju zahteva.";
+      toast.error("Greška", { description: message });
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleRequestPayment(id) {
+    setBusyId(id);
+    try {
+      await recordCooperationPayment(id);
+      toast.success("Uplata je zabeležena.");
+      loadCooperations();
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "Greška pri beleženju uplate.";
       toast.error("Greška", { description: message });
     } finally {
       setBusyId(null);
@@ -287,6 +598,14 @@ export default function TrainerHome() {
                     onAccept={handleAccept}
                     onReject={handleReject}
                     onEnd={handleEnd}
+                    onRequestPayment={handleRequestPayment}
+                    onShowHistory={(coop) =>
+                      setHistoryTarget({
+                        id: coop.id,
+                        clientName: coop.clientName || coop.client?.name || "Klijent",
+                      })
+                    }
+                    isPaid={paidCooperationIds.has(c.id)}
                   />
                 ))}
               </div>
@@ -299,6 +618,14 @@ export default function TrainerHome() {
           </div>
         )}
       </div>
+
+      <TrainingHistoryModal
+        open={!!historyTarget}
+        onOpenChange={(open) => !open && setHistoryTarget(null)}
+        cooperationId={historyTarget?.id}
+        clientName={historyTarget?.clientName}
+        exerciseCatalog={new Map(exercises.map((ex) => [ex.id, ex.name]))}
+      />
     </TrainerShell>
   );
 }

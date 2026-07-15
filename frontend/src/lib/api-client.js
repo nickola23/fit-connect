@@ -313,4 +313,83 @@ export function upsertTrainerReview(trainerId, { rating, comment }) {
   });
 }
 
+/** POST /api/cooperations/{id}/payments -> PaymentResponse (no body, amount = locked-in pricing tier price) */
+export function recordCooperationPayment(id) {
+  return request(`/cooperations/${id}/payments`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/cooperations/{id}/trainings -> TrainingResponse */
+export function createTraining(cooperationId, payload) {
+  return request(`/cooperations/${cooperationId}/trainings`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+}
+
+/** GET /api/cooperations/{id}/trainings -> TrainingResponse[] (full history, FR15/FR27) */
+export function listCooperationTrainings(cooperationId) {
+  return request(`/cooperations/${cooperationId}/trainings`, {
+    headers: authHeaders(),
+  });
+}
+
+/** GET /api/trainings/{id}/exercises -> TrainingExerciseResponse[] */
+export function listTrainingExercises(trainingId) {
+  return request(`/trainings/${trainingId}/exercises`, {
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/trainings/{id}/complete -> explicit action, no auto-complete */
+export function completeTraining(trainingId) {
+  return request(`/trainings/${trainingId}/complete`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/trainings/{id}/missed -> explicit action */
+export function markTrainingMissed(trainingId) {
+  return request(`/trainings/${trainingId}/missed`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
+
+/** PATCH /api/training-exercises/{id}/complete -> 204 (owning client only) */
+export function markTrainingExerciseComplete(id, { difficultyRating, comment } = {}) {
+  const payload = {};
+  if (difficultyRating != null) payload.difficultyRating = difficultyRating;
+  if (comment) payload.comment = comment;
+
+  return request(`/training-exercises/${id}/complete`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+}
+
+/** GET /api/trainings/{id}/review -> TrainingReviewResponse (any Trainer; peer-only, never client-visible) */
+export function getTrainingReview(trainingId) {
+  return request(`/trainings/${trainingId}/review`, {
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/trainings/{id}/review -> TrainingReviewResponse (that training's trainer only; 409 if not Completed or already reviewed) */
+export function createTrainingReview(trainingId, { rating, comment }) {
+  const payload = { rating };
+  if (comment) payload.comment = comment;
+
+  return request(`/trainings/${trainingId}/review`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+}
+
 export { ApiError };
