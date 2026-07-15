@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using FitConnect.Domain.Exceptions;
+using FitConnect.Domain.Exceptions.Cooperaions;
 using FitConnect.Domain.Exceptions.Credentials;
 using FitConnect.Domain.Exceptions.HealthRecords;
 using FitConnect.Domain.Exceptions.Reviews;
