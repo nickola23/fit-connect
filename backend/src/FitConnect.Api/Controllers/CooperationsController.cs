@@ -1,7 +1,9 @@
 ﻿using FitConnect.Api.Contracts.Cooperations;
+using FitConnect.Api.Contracts.Payments;
 using FitConnect.Api.Contracts.Trainings;
 using FitConnect.Application.Common;
 using FitConnect.Application.Cooperations;
+using FitConnect.Application.Payments;
 using FitConnect.Application.Trainings;
 using FitConnect.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -17,13 +19,18 @@ public class CooperationsController : ControllerBase
     private readonly CooperationService cooperationService;
     private readonly ICurrentUserAccessor currentUser;
     private readonly TrainingService trainingService;
+    private readonly PaymentService paymentService;
 
-    public CooperationsController(CooperationService cooperationService, ICurrentUserAccessor currentUser,
-        TrainingService trainingService)
+    public CooperationsController(
+        CooperationService cooperationService,
+        ICurrentUserAccessor currentUser,
+        TrainingService trainingService,
+        PaymentService paymentService)
     {
         this.cooperationService = cooperationService;
         this.currentUser = currentUser;
         this.trainingService = trainingService;
+        this.paymentService = paymentService;
     }
 
     [HttpPost]
@@ -98,5 +105,21 @@ public class CooperationsController : ControllerBase
     {
         var trainings = await trainingService.GetForCooperationAsync(id, cancellationToken);
         return Ok(trainings.Select(TrainingResponse.FromDomain));
+    }
+    
+    [HttpGet("{id:guid}/payments")]
+    [Authorize(Policy = "CooperationParticipantOrAdmin")]
+    public async Task<ActionResult<IReadOnlyList<PaymentResponse>>> GetPayments(Guid id, CancellationToken cancellationToken)
+    {
+        var payments = await paymentService.GetForCooperationAsync(id, cancellationToken);
+        return Ok(payments.Select(PaymentResponse.FromDomain));
+    }
+
+    [HttpPost("{id:guid}/payments")]
+    [Authorize(Policy = "CooperationTrainerParticipantOrAdmin")]
+    public async Task<ActionResult<PaymentResponse>> RecordPayment(Guid id, CancellationToken cancellationToken)
+    {
+        var payment = await paymentService.RecordAsync(id, cancellationToken);
+        return CreatedAtAction(nameof(GetPayments), new { id }, PaymentResponse.FromDomain(payment));
     }
 }
