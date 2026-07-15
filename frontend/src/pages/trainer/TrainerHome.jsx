@@ -3,32 +3,108 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { TrainerShell } from "@/components/trainer/TrainerShell";
 import { getUser } from "@/lib/auth-storage";
-import { getTrainerById, listTrainerExercises, ApiError } from "@/lib/api-client";
+import {
+  getTrainerById,
+  listTrainerExercises,
+  listTrainerCooperations,
+  acceptCooperation,
+  rejectCooperation,
+  endCooperation,
+  ApiError,
+} from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Star, Users, Dumbbell, User } from "lucide-react";
+import { Star, Users, Dumbbell, User, Check, X, CalendarPlus, Ban } from "lucide-react";
 import { usePageTitle } from "@/lib/use-page-title";
+
+const COOPERATION_SECTIONS = [
+  { status: "Pending", title: "Zahtevi na čekanju" },
+  { status: "Accepted", title: "Prihvaćeni" },
+  { status: "Active", title: "Aktivni klijenti" },
+  { status: "Ended", title: "Završene saradnje" },
+];
+
+function CooperationCard({ cooperation, onAccept, onReject, onEnd, busy }) {
+  return (
+    <Card>
+      <CardContent className="flex flex-col gap-3 pt-6">
+        <div className="flex items-center justify-between">
+          <p className="font-medium text-foreground">
+            Klijent #{cooperation.clientId.slice(0, 8)}
+          </p>
+          <Badge variant="outline">{cooperation.status}</Badge>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Zahtev poslat: {new Date(cooperation.requestDate).toLocaleDateString("sr-RS")}
+          {cooperation.isFreeTrial && " · Besplatni probni termin"}
+        </p>
+
+        <div className="flex flex-wrap gap-2 pt-1">
+          {cooperation.status === "Pending" && (
+            <>
+              <Button size="sm" disabled={busy} onClick={() => onAccept(cooperation.id)}>
+                <Check className="mr-1 h-4 w-4" /> Prihvati
+              </Button>
+              <Button size="sm" variant="outline" disabled={busy} onClick={() => onReject(cooperation.id)}>
+                <X className="mr-1 h-4 w-4" /> Odbij
+              </Button>
+            </>
+          )}
+
+          {(cooperation.status === "Accepted" || cooperation.status === "Active") && (
+            <Button size="sm" variant="outline" disabled={busy} onClick={() => onEnd(cooperation.id)}>
+              <Ban className="mr-1 h-4 w-4" /> Prekini saradnju
+            </Button>
+          )}
+
+          {cooperation.status === "Active" && (
+            <Button size="sm" asChild>
+              <Link to={`/trainer/cooperations/${cooperation.id}/trainings/new`}>
+                <CalendarPlus className="mr-1 h-4 w-4" /> Kreiraj trening
+              </Link>
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function TrainerHome() {
   usePageTitle("Trener — Početna | FitConnect");
 
   const [trainer, setTrainer] = useState(null);
   const [exercises, setExercises] = useState([]);
+  const [cooperations, setCooperations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState(null);
+
+  const user = getUser();
+
+  function loadCooperations() {
+    if (!user) return;
+    listTrainerCooperations(user.id)
+      .then(setCooperations)
+      .catch((error) => {
+        const message =
+          error instanceof ApiError ? error.message : "Ne mogu da učitam zahteve klijenata.";
+        toast.error("Greška pri učitavanju zahteva", { description: message });
+      });
+  }
 
   useEffect(() => {
-    const user = getUser();
     if (!user) return;
 
     let cancelled = false;
     setLoading(true);
 
-    Promise.all([getTrainerById(user.id), listTrainerExercises(user.id)])
-      .then(([trainerData, exercisesData]) => {
+    Promise.all([getTrainerById(user.id), listTrainerExercises(user.id), listTrainerCooperations(user.id)])
+      .then(([trainerData, exercisesData, cooperationsData]) => {
         if (cancelled) return;
         setTrainer(trainerData);
         setExercises(exercisesData);
+        setCooperations(cooperationsData);
       })
       .catch((error) => {
         if (cancelled) return;
@@ -44,6 +120,48 @@ export default function TrainerHome() {
       cancelled = true;
     };
   }, []);
+
+  async function handleAccept(id) {
+    setBusyId(id);
+    try {
+      await acceptCooperation(id);
+      toast.success("Zahtev je prihvaćen.");
+      loadCooperations();
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "Greška pri prihvatanju zahteva.";
+      toast.error("Greška", { description: message });
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleReject(id) {
+    setBusyId(id);
+    try {
+      await rejectCooperation(id);
+      toast.success("Zahtev je odbijen.");
+      loadCooperations();
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "Greška pri odbijanju zahteva.";
+      toast.error("Greška", { description: message });
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleEnd(id) {
+    setBusyId(id);
+    try {
+      await endCooperation(id);
+      toast.success("Saradnja je prekinuta.");
+      loadCooperations();
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "Greška pri prekidu saradnje.";
+      toast.error("Greška", { description: message });
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   if (loading || !trainer)
     return (
@@ -151,6 +269,35 @@ export default function TrainerHome() {
             </Button>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="mt-10 flex flex-col gap-8">
+        {COOPERATION_SECTIONS.map(({ status, title }) => {
+          const items = cooperations.filter((c) => c.status === status);
+          if (items.length === 0) return null;
+          return (
+            <div key={status}>
+              <h2 className="mb-3 font-display text-lg font-semibold text-foreground">{title}</h2>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map((c) => (
+                  <CooperationCard
+                    key={c.id}
+                    cooperation={c}
+                    busy={busyId === c.id}
+                    onAccept={handleAccept}
+                    onReject={handleReject}
+                    onEnd={handleEnd}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+        {cooperations.length === 0 && (
+          <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            Još uvek nema zahteva klijenata.
+          </div>
+        )}
       </div>
     </TrainerShell>
   );

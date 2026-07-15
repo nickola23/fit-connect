@@ -21,7 +21,15 @@ export default function Auth() {
       const { token, user } = await login({ email, password });
       saveSession({ token, user });
       toast.success(`Dobrodošao/la, ${user.name}!`);
-      navigate(user.role === "Trainer" ? "/trainer" : "/");
+      if(user.role === "Trainer"){
+        navigate("/trainer");
+      }
+      else if(user.role === "Client"){
+        navigate("/client");
+      }
+      else{
+        navigate("/admin");
+      }
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         toast.error("Pogrešan email ili lozinka");

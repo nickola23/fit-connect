@@ -1,15 +1,24 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { Home, User, Dumbbell, LogOut, Wallet } from "lucide-react";
+import { Home, User, LogOut } from "lucide-react";
 import { clearSession } from "@/lib/auth-storage";
+import { Dumbbell, Package } from "lucide-react";
 
 const tabs = [
-  { to: "/trainer", label: "Početna", icon: Home, end: true },
-  { to: "/trainer/profile", label: "Moj profil", icon: User, end: false },
-  { to: "/trainer/pricing-tiers", label: "Paketi", icon: Wallet, end: false },
-  { to: "/trainer/exercises/new", label: "Nova vežba", icon: Dumbbell, end: false },
+  { to: "/client", label: "Početna", icon: Home, end: true },
+  { to: "/client/profile", label: "Moj profil", icon: User, end: false },
+  { 
+    to: "/my-equipment/equipment", 
+    label: "Sprave", 
+    icon: Dumbbell 
+  },
+  { 
+    to: "/my-equipment/accessory", 
+    label: "Rekviziti", 
+    icon: Package 
+  },
 ];
 
-export function TrainerShell({ children }) {
+export function ClientShell({ children }) {
   const navigate = useNavigate();
 
   function handleLogout() {
@@ -26,7 +35,7 @@ export function TrainerShell({ children }) {
               F
             </span>
             <span className="font-display text-lg font-bold text-foreground">
-              FitConnect <span className="text-muted-foreground font-normal">/ Trener</span>
+              FitConnect <span className="text-muted-foreground font-normal">/ Klijent</span>
             </span>
           </Link>
           <nav className="flex items-center gap-1">

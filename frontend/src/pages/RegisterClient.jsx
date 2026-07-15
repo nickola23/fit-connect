@@ -144,7 +144,7 @@ export function RegisterClient() {
       });
       saveSession({ token, user });
       toast.success("Nalog je uspešno kreiran!");
-      navigate("/");
+      navigate("/client");
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         toast.error("Email je već registrovan");

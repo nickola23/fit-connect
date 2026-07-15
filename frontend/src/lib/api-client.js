@@ -137,4 +137,164 @@ export function recordExerciseDemoVideo(exerciseId, url) {
   });
 }
 
+/** GET /api/trainers/{id}/cooperations?status=... -> CooperationResponse[] */
+export function listTrainerCooperations(trainerId, status) {
+  const query = status ? `?status=${status}` : "";
+  return request(`/trainers/${trainerId}/cooperations${query}`, {
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/cooperations/{id}/accept */
+export function acceptCooperation(id) {
+  return request(`/cooperations/${id}/accept`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/cooperations/{id}/reject */
+export function rejectCooperation(id) {
+  return request(`/cooperations/${id}/reject`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/cooperations/{id}/end */
+export function endCooperation(id) {
+  return request(`/cooperations/${id}/end`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
+
+/** GET /api/trainers?sortBy=&sortDirection= -> TrainerResponse[] (non-admins only see Approved) */
+export function listTrainers({ sortBy, sortDirection } = {}) {
+  const params = new URLSearchParams();
+  if (sortBy) params.set("sortBy", sortBy);
+  if (sortDirection) params.set("sortDirection", sortDirection);
+  const query = params.toString() ? `?${params.toString()}` : "";
+  return request(`/trainers${query}`, {
+    headers: authHeaders(),
+  });
+}
+
+/** GET /api/clients/{id}/cooperations -> CooperationResponse[] (history for FR27) */
+export function listClientCooperations(clientId) {
+  return request(`/clients/${clientId}/cooperations`, {
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/cooperations -> CooperationResponse */
+export function createCooperation({ trainerId, pricingTierId, isFreeTrial }) {
+  const payload = { trainerId, isFreeTrial: !!isFreeTrial };
+  if (!isFreeTrial && pricingTierId) payload.pricingTierId = pricingTierId;
+
+  return request("/cooperations", {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+}
+
+/** GET /api/clients/{id} -> ClientResponse */
+export function getClientById(id) {
+  return request(`/clients/${id}`, {
+    headers: authHeaders(),
+  });
+}
+
+/** PATCH /api/clients/{id} */
+export function updateClientById(id, patch) {
+  return request(`/clients/${id}`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify(patch),
+  });
+}
+
+/** GET /api/equipment?type=Apparatus -> EquipmentResponse[] */
+export function getEquipment(type) {
+  const query = type ? `?type=${type}` : "";
+  return request(`/equipment${query}`, {
+    headers: authHeaders(),
+  });
+}
+
+/** GET /api/equipment/{id} -> EquipmentResponse */
+export function getEquipmentById(id) {
+  return request(`/equipment/${id}`, {
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/equipment -> EquipmentResponse */
+export function createEquipment(payload) {
+  return request(`/equipment`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+}
+
+/** PATCH /api/equipment/{id} -> EquipmentResponse */
+export function updateEquipment(id, payload) {
+  return request(`/equipment/${id}`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+}
+
+/** DELETE /api/equipment/{id} */
+export function deleteEquipment(id) {
+  return request(`/equipment/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+}
+
+/** GET /api/trainers/{id}/pricing-tiers -> PricingTierResponse[] (owning trainer/Admin also sees inactive) */
+export function listTrainerPricingTiers(trainerId) {
+  return request(`/trainers/${trainerId}/pricing-tiers`, {
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/trainers/{id}/pricing-tiers -> PricingTierResponse */
+export function createPricingTier(trainerId, { sessionsPerWeek, monthlyPrice }) {
+  return request(`/trainers/${trainerId}/pricing-tiers`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ sessionsPerWeek, monthlyPrice }),
+  });
+}
+
+/** PATCH /api/pricing-tiers/{id} -> PricingTierResponse (price only, sessionsPerWeek is fixed) */
+export function updatePricingTier(id, { monthlyPrice }) {
+  return request(`/pricing-tiers/${id}`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify({ monthlyPrice }),
+  });
+}
+
+/** POST /api/pricing-tiers/{id}/deactivate */
+export function deactivatePricingTier(id) {
+  return request(`/pricing-tiers/${id}/deactivate`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/pricing-tiers/{id}/activate */
+export function activatePricingTier(id) {
+  return request(`/pricing-tiers/${id}/activate`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
+
 export { ApiError };
