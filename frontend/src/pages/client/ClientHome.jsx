@@ -1,22 +1,38 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ClientShell } from "@/components/client/ClientShell";
+import { SendRequestModal } from "@/components/client/SendRequestModal";
+import { ReviewTrainerModal } from "@/components/client/ReviewTrainerModal";
+import { PaymentHistoryModal } from "@/components/client/PaymentHistoryModal";
 import { getUser } from "@/lib/auth-storage";
 import {
   listTrainers,
   listClientCooperations,
+  getClientById,
   getTrainerById,
-  createCooperation,
+  endCooperation,
   ApiError,
 } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Star, GraduationCap, Send } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Star, GraduationCap, Send, Receipt, MessageSquarePlus, XCircle } from "lucide-react";
 import { usePageTitle } from "@/lib/use-page-title";
 
 // Saradnja se smatra "aktivnom" (klijent je vezan za jednog trenera) u ovim statusima.
 const ACTIVE_STATUSES = ["Pending", "Accepted", "Active"];
+// Akcije (plaćanje/recenzija/prekid) imaju smisla tek kad trener prihvati saradnju.
+const ACTIONABLE_STATUSES = ["Accepted", "Active"];
 
 export default function ClientHome() {
   usePageTitle("Klijent — Početna | FitConnect");
@@ -25,7 +41,13 @@ export default function ClientHome() {
   const [activeCooperation, setActiveCooperation] = useState(null);
   const [activeTrainer, setActiveTrainer] = useState(null);
   const [trainers, setTrainers] = useState([]);
-  const [sendingId, setSendingId] = useState(null);
+  const [hasUsedFreeTrial, setHasUsedFreeTrial] = useState(false);
+  const [requestTrainer, setRequestTrainer] = useState(null);
+
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showPaymentsModal, setShowPaymentsModal] = useState(false);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [ending, setEnding] = useState(false);
 
   const user = getUser();
 
@@ -33,8 +55,10 @@ export default function ClientHome() {
     if (!user) return;
     setLoading(true);
 
-    listClientCooperations(user.id)
-      .then(async (cooperations) => {
+    Promise.all([listClientCooperations(user.id), getClientById(user.id)])
+      .then(async ([cooperations, client]) => {
+        setHasUsedFreeTrial(client.freeTrialUsed);
+
         const current = cooperations.find((c) => ACTIVE_STATUSES.includes(c.status));
 
         if (current) {
@@ -66,18 +90,19 @@ export default function ClientHome() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleSendRequest(trainerId) {
-    setSendingId(trainerId);
+  async function handleEndCooperation() {
+    if (!activeCooperation) return;
+    setEnding(true);
     try {
-      await createCooperation({ trainerId, isFreeTrial: true });
-      toast.success("Zahtev je poslat treneru.");
+      await endCooperation(activeCooperation.id);
+      toast.success("Saradnja je prekinuta");
+      setShowEndConfirm(false);
       loadData();
     } catch (error) {
-      const message =
-        error instanceof ApiError ? error.message : "Greška pri slanju zahteva.";
+      const message = error instanceof ApiError ? error.message : "Nije uspelo prekidanje saradnje.";
       toast.error("Greška", { description: message });
     } finally {
-      setSendingId(null);
+      setEnding(false);
     }
   }
 
@@ -87,6 +112,8 @@ export default function ClientHome() {
         <p className="text-muted-foreground">Učitavanje…</p>
       </ClientShell>
     );
+
+  const canManage = activeCooperation && ACTIONABLE_STATUSES.includes(activeCooperation.status);
 
   return (
     <ClientShell>
@@ -99,7 +126,7 @@ export default function ClientHome() {
         <div className="mt-8">
           <h2 className="mb-3 font-display text-lg font-semibold text-foreground">Tvoj trener</h2>
           <Card>
-            <CardContent className="flex flex-col gap-4 pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <CardContent className="flex flex-col gap-4 pt-6 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="flex items-center gap-2">
                   <p className="font-display text-xl font-bold text-foreground">{activeTrainer.name}</p>
@@ -126,6 +153,36 @@ export default function ClientHome() {
                   </p>
                 )}
               </div>
+
+              {canManage && (
+                <div className="flex shrink-0 flex-col gap-2 sm:items-end">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowPaymentsModal(true)}
+                  >
+                    <Receipt className="mr-2 h-4 w-4" />
+                    Istorija plaćanja
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowReviewModal(true)}
+                  >
+                    <MessageSquarePlus className="mr-2 h-4 w-4" />
+                    Ostavi recenziju
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowEndConfirm(true)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Prekini saradnju
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -162,8 +219,7 @@ export default function ClientHome() {
                     <Button
                       size="sm"
                       className="mt-auto"
-                      disabled={sendingId === trainer.id}
-                      onClick={() => handleSendRequest(trainer.id)}
+                      onClick={() => setRequestTrainer(trainer)}
                     >
                       <Send className="mr-2 h-4 w-4" /> Pošalji zahtev
                     </Button>
@@ -174,6 +230,55 @@ export default function ClientHome() {
           )}
         </div>
       )}
+
+      <SendRequestModal
+        open={!!requestTrainer}
+        onOpenChange={(open) => !open && setRequestTrainer(null)}
+        trainer={requestTrainer}
+        hasFreeTrialAvailable={!hasUsedFreeTrial}
+        onSent={() => {
+          setRequestTrainer(null);
+          loadData();
+        }}
+      />
+
+      {activeTrainer && (
+        <ReviewTrainerModal
+          open={showReviewModal}
+          onOpenChange={setShowReviewModal}
+          trainer={activeTrainer}
+        />
+      )}
+
+      {activeCooperation && (
+        <PaymentHistoryModal
+          open={showPaymentsModal}
+          onOpenChange={setShowPaymentsModal}
+          cooperationId={activeCooperation.id}
+        />
+      )}
+
+      <AlertDialog open={showEndConfirm} onOpenChange={setShowEndConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Prekinuti saradnju sa {activeTrainer?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ova akcija je trajna. Moći ćeš ponovo da pošalješ zahtev nekom treneru, ali ova
+              saradnja se ne može nastaviti.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Otkaži</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleEndCooperation}
+              disabled={ending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {ending ? "Prekidam..." : "Prekini saradnju"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ClientShell>
   );
 }

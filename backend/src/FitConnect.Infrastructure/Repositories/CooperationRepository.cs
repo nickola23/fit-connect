@@ -4,6 +4,7 @@ using FitConnect.Application.Cooperations;
 using FitConnect.Domain.Cooperations;
 using FitConnect.Domain.Enums;
 using FitConnect.Domain.Exceptions;
+using FitConnect.Domain.Exceptions.Cooperaions;
 using Npgsql;
 
 namespace FitConnect.Infrastructure.Repositories;
@@ -220,6 +221,24 @@ public class CooperationRepository : ICooperationRepository
                                SELECT 1 FROM cooperations
                                WHERE trainer_id = @trainerId AND client_id = @clientId
                                  AND status IN ('ACCEPTED', 'ACTIVE', 'ENDED')
+                           )
+                           """;
+
+        await using var command = CreateCommand(connection, sql);
+        command.Parameters.AddWithValue("trainerId", trainerId);
+        command.Parameters.AddWithValue("clientId", clientId);
+        return (bool)(await command.ExecuteScalarAsync(cancellationToken))!;
+    }
+    
+    public async Task<bool> HasAcceptedOrActiveCooperationBetweenAsync(Guid trainerId, Guid clientId, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+
+        const string sql = """
+                           SELECT EXISTS(
+                               SELECT 1 FROM cooperations
+                               WHERE trainer_id = @trainerId AND client_id = @clientId
+                                 AND status IN ('ACCEPTED', 'ACTIVE')
                            )
                            """;
 

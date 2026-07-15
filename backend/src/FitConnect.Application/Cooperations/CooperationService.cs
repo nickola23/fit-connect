@@ -2,6 +2,7 @@
 using FitConnect.Domain.Cooperations;
 using FitConnect.Domain.Enums;
 using FitConnect.Domain.Exceptions;
+using FitConnect.Domain.Exceptions.Cooperaions;
 
 namespace FitConnect.Application.Cooperations;
 

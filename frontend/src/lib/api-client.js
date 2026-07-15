@@ -297,4 +297,20 @@ export function activatePricingTier(id) {
   });
 }
 
+/** GET /api/cooperations/{id}/payments -> PaymentResponse[] (read-only for client; only trainer/Admin can record one) */
+export function listCooperationPayments(cooperationId) {
+  return request(`/cooperations/${cooperationId}/payments`, {
+    headers: authHeaders(),
+  });
+}
+
+/** PUT /api/trainers/{id}/reviews -> TrainerReviewResponse (Client only, create-or-replace own review) */
+export function upsertTrainerReview(trainerId, { rating, comment }) {
+  return request(`/trainers/${trainerId}/reviews`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify({ rating, comment }),
+  });
+}
+
 export { ApiError };

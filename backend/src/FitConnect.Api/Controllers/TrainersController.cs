@@ -32,6 +32,7 @@ public class TrainersController : ControllerBase
     private readonly ICurrentUserAccessor currentUser;
     private readonly CredentialService credentialService;
     private readonly TrainerReviewService trainerReviewService;
+    private readonly ClientService clientService;
 
     public TrainersController(
         TrainerService trainerService,
@@ -40,7 +41,8 @@ public class TrainersController : ControllerBase
         ExerciseService exerciseService,
         ICurrentUserAccessor currentUser,
         CredentialService credentialService,
-        TrainerReviewService trainerReviewService)
+        TrainerReviewService trainerReviewService,
+        ClientService clientService)
     {
         this.trainerService = trainerService;
         this.cooperationService = cooperationService;
@@ -49,6 +51,7 @@ public class TrainersController : ControllerBase
         this.currentUser = currentUser;
         this.credentialService = credentialService;
         this.trainerReviewService = trainerReviewService;
+        this.clientService = clientService;   
     }
 
     [HttpGet]
@@ -135,7 +138,7 @@ public class TrainersController : ControllerBase
     
     [HttpGet("{id:guid}/cooperations")]
     [Authorize(Policy = "SameUserOrAdmin")]
-    public async Task<ActionResult<IReadOnlyList<CooperationResponse>>> GetCooperations(Guid id, [FromQuery] string? status, CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<TrainerCooperationResponse>>> GetCooperations(Guid id, [FromQuery] string? status, CancellationToken cancellationToken)
     {
         CooperationStatus? statusFilter = null;
         if (!string.IsNullOrWhiteSpace(status))
@@ -148,7 +151,16 @@ public class TrainersController : ControllerBase
         }
 
         var cooperations = await cooperationService.GetForTrainerAsync(id, statusFilter, cancellationToken);
-        return Ok(cooperations.Select(CooperationResponse.FromDomain));
+
+        var clientIds = cooperations.Select(c => c.ClientId).Distinct().ToList();
+        var clients = await clientService.GetByIdsAsync(clientIds, cancellationToken);
+        var clientsById = clients.ToDictionary(c => c.Id);
+
+        var response = cooperations
+            .Where(c => clientsById.ContainsKey(c.ClientId))
+            .Select(c => TrainerCooperationResponse.FromDomain(c, clientsById[c.ClientId]));
+
+        return Ok(response);
     }
     
     [HttpGet("{id:guid}/pricing-tiers")]
