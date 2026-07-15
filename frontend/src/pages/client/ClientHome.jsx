@@ -4,6 +4,7 @@ import { ClientShell } from "@/components/client/ClientShell";
 import { SendRequestModal } from "@/components/client/SendRequestModal";
 import { ReviewTrainerModal } from "@/components/client/ReviewTrainerModal";
 import { PaymentHistoryModal } from "@/components/client/PaymentHistoryModal";
+import { TrainingDetailModal } from "@/components/client/TrainingDetailModal";
 import { getUser } from "@/lib/auth-storage";
 import {
   listTrainers,
@@ -11,6 +12,7 @@ import {
   getClientById,
   getTrainerById,
   endCooperation,
+  listCooperationTrainings,
   ApiError,
 } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
@@ -26,13 +28,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Star, GraduationCap, Send, Receipt, MessageSquarePlus, XCircle } from "lucide-react";
+import {
+  Star,
+  GraduationCap,
+  Send,
+  Receipt,
+  MessageSquarePlus,
+  XCircle,
+  Video,
+  Target,
+} from "lucide-react";
 import { usePageTitle } from "@/lib/use-page-title";
 
 // Saradnja se smatra "aktivnom" (klijent je vezan za jednog trenera) u ovim statusima.
 const ACTIVE_STATUSES = ["Pending", "Accepted", "Active"];
 // Akcije (plaćanje/recenzija/prekid) imaju smisla tek kad trener prihvati saradnju.
 const ACTIONABLE_STATUSES = ["Accepted", "Active"];
+
+const TRAINING_STATUS_VARIANT = {
+  Scheduled: "secondary",
+  Completed: "default",
+  Missed: "destructive",
+};
 
 export default function ClientHome() {
   usePageTitle("Klijent — Početna | FitConnect");
@@ -43,6 +60,10 @@ export default function ClientHome() {
   const [trainers, setTrainers] = useState([]);
   const [hasUsedFreeTrial, setHasUsedFreeTrial] = useState(false);
   const [requestTrainer, setRequestTrainer] = useState(null);
+
+  const [trainings, setTrainings] = useState([]);
+  const [trainingsLoading, setTrainingsLoading] = useState(false);
+  const [selectedTraining, setSelectedTraining] = useState(null);
 
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showPaymentsModal, setShowPaymentsModal] = useState(false);
@@ -66,9 +87,11 @@ export default function ClientHome() {
           setActiveCooperation(current);
           setActiveTrainer(trainer);
           setTrainers([]);
+          loadTrainings(current.id);
         } else {
           setActiveCooperation(null);
           setActiveTrainer(null);
+          setTrainings([]);
           const trainerList = await listTrainers({ sortBy: "AverageRating" });
           setTrainers(
             Array.isArray(trainerList)
@@ -83,6 +106,21 @@ export default function ClientHome() {
         toast.error("Greška pri učitavanju", { description: message });
       })
       .finally(() => setLoading(false));
+  }
+
+  function loadTrainings(cooperationId) {
+    setTrainingsLoading(true);
+    listCooperationTrainings(cooperationId)
+      .then((data) => {
+        const sorted = [...data].sort((a, b) => (a.trainingDate < b.trainingDate ? 1 : -1));
+        setTrainings(sorted);
+      })
+      .catch((error) => {
+        const message =
+          error instanceof ApiError ? error.message : "Ne mogu da učitam treninge.";
+        toast.error("Greška pri učitavanju", { description: message });
+      })
+      .finally(() => setTrainingsLoading(false));
   }
 
   useEffect(() => {
@@ -185,6 +223,50 @@ export default function ClientHome() {
               )}
             </CardContent>
           </Card>
+
+          <div className="mt-8">
+            <h2 className="mb-3 font-display text-lg font-semibold text-foreground">
+              Tvoji treninzi
+            </h2>
+            {trainingsLoading ? (
+              <p className="text-sm text-muted-foreground">Učitavanje…</p>
+            ) : trainings.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                Trener ti još uvek nije dodelio nijedan trening.
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {trainings.map((training) => (
+                  <Card
+                    key={training.id}
+                    className="cursor-pointer transition-colors hover:border-primary"
+                    onClick={() => setSelectedTraining(training)}
+                  >
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center justify-between text-base">
+                        <span className="flex items-center gap-2">
+                          {training.type === "Live" ? (
+                            <Video className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <Target className="h-4 w-4 text-muted-foreground" />
+                          )}
+                          {new Date(training.trainingDate).toLocaleDateString("sr-RS")}
+                        </span>
+                        <Badge variant={TRAINING_STATUS_VARIANT[training.status] || "secondary"}>
+                          {training.status}
+                        </Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        {training.type === "Live" ? "Uživo" : "Zadat trening"}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <div className="mt-8">
@@ -257,6 +339,12 @@ export default function ClientHome() {
           cooperationId={activeCooperation.id}
         />
       )}
+
+      <TrainingDetailModal
+        open={!!selectedTraining}
+        onOpenChange={(open) => !open && setSelectedTraining(null)}
+        training={selectedTraining}
+      />
 
       <AlertDialog open={showEndConfirm} onOpenChange={setShowEndConfirm}>
         <AlertDialogContent>

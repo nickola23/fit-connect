@@ -31,10 +31,10 @@ function PriceEditor({ tier, onSaved }) {
     }
     setSaving(true);
     try {
-      const updated = await updatePricingTier(tier.id, { monthlyPrice: value });
+      await updatePricingTier(tier.id, { monthlyPrice: value });
       toast.success("Cena je izmenjena");
       setEditing(false);
-      onSaved(updated);
+      onSaved();
     } catch (error) {
       const message = error instanceof ApiError ? error.message : "Izmena nije uspela.";
       toast.error("Greška", { description: message });
@@ -107,18 +107,18 @@ export default function PricingTiers() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function handleTierUpdated(updated) {
-    setTiers((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
-  }
-
   async function handleToggleActive(tier) {
     setTogglingId(tier.id);
     try {
-      const updated = tier.active
-        ? await deactivatePricingTier(tier.id)
-        : await activatePricingTier(tier.id);
-      toast.success(tier.active ? "Paket je deaktiviran" : "Paket je aktiviran");
-      handleTierUpdated(updated);
+      if (tier.active) {
+        await deactivatePricingTier(tier.id);
+        toast.success("Paket je deaktiviran");
+      } else {
+        await activatePricingTier(tier.id);
+        toast.success("Paket je aktiviran");
+      }
+      // Endpoint-i za (de)aktivaciju ne vraćaju telo (204), pa jednostavno osvežimo listu.
+      loadTiers();
     } catch (error) {
       const message = error instanceof ApiError ? error.message : "Akcija nije uspela.";
       toast.error("Greška", { description: message });
@@ -143,14 +143,14 @@ export default function PricingTiers() {
 
     setCreating(true);
     try {
-      const created = await createPricingTier(user.id, {
+      await createPricingTier(user.id, {
         sessionsPerWeek: sessions,
         monthlyPrice: price,
       });
-      setTiers((prev) => [...prev, created]);
       setSessionsPerWeek(3);
       setMonthlyPrice("");
       toast.success("Paket je kreiran");
+      loadTiers();
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         toast.error("Već imaš paket sa tim brojem treninga nedeljno");
@@ -200,7 +200,7 @@ export default function PricingTiers() {
                       </Badge>
                     </div>
                     <div className="mt-2">
-                      <PriceEditor tier={tier} onSaved={handleTierUpdated} />
+                      <PriceEditor tier={tier} onSaved={loadTiers} />
                     </div>
                   </div>
                   <Button
