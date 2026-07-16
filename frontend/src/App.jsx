@@ -28,6 +28,8 @@ import ClientProfileEdit from "./pages/client/ClientProfileEdit";
 import TrainingNew from "./pages/trainer/TrainingNew";
 import AdminHome from "./pages/admin/AdminHome";
 import AdminTrainerDetail from "./pages/admin/AdminTrainerDetail";
+import EquipmentCrud from "./pages/admin/EquipmentCrud";
+import AccessoryCrud from "./pages/admin/AccessoryCrud";
 
 function App() {
   return (
@@ -140,6 +142,20 @@ function App() {
           <Route path="/admin/trainers/:id" element={
           <ProtectedRoute allowedRoles={["Admin"]}>
               <AdminTrainerDetail />
+            </ProtectedRoute>
+            }
+          />
+
+          <Route path="/admin/equipment" element={
+          <ProtectedRoute allowedRoles={["Admin"]}>
+              <EquipmentCrud />
+            </ProtectedRoute>
+            }
+          />
+
+          <Route path="/admin/accessories" element={
+          <ProtectedRoute allowedRoles={["Admin"]}>
+              <AccessoryCrud />
             </ProtectedRoute>
             }
           />

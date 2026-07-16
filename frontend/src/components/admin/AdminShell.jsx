@@ -1,9 +1,11 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { Home, LogOut, ShieldCheck } from "lucide-react";
+import { Home, LogOut, ShieldCheck, Dumbbell, Package } from "lucide-react";
 import { clearSession } from "@/lib/auth-storage";
 
 const tabs = [
   { to: "/admin", label: "Početna", icon: Home, end: true },
+  { to: "/admin/equipment", label: "Sprave", icon: Dumbbell, end: false },
+  { to: "/admin/accessories", label: "Rekviziti", icon: Package, end: false },
 ];
 
 export function AdminShell({ children }) {
