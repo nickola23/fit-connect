@@ -8,6 +8,7 @@ import {
   listTrainerCredentials,
   approveTrainer,
   rejectTrainer,
+  resolveFileUrl,
   ApiError,
 } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
@@ -159,7 +160,7 @@ export default function AdminTrainerDetail() {
                       <p className="mt-1.5 text-xs text-muted-foreground">Izdao: {c.issuedBy}</p>
                     )}
                     <a
-                      href={c.fileUrl}
+                      href={resolveFileUrl(c.fileUrl)}
                       target="_blank"
                       rel="noreferrer"
                       className="mt-1.5 inline-flex items-center gap-1 text-xs text-primary hover:underline"

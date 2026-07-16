@@ -6,6 +6,7 @@ import { getUser } from "@/lib/auth-storage";
 import {
   createTrainerExercise,
   recordExerciseDemoVideo,
+  uploadFile,
   getEquipment,
   addExerciseEquipment,
   ApiError,
@@ -26,7 +27,6 @@ const schema = z.object({
   description: z.string().trim().max(1000).optional().or(z.literal("")),
   defaultReps: z.coerce.number().int().min(1, "Bar 1").max(1000),
   defaultSets: z.coerce.number().int().min(1, "Bar 1").max(100),
-  demoVideoUrl: z.string().trim().url("Neispravan URL").optional().or(z.literal("")),
 });
 
 export default function ExerciseNew() {
@@ -39,6 +39,7 @@ export default function ExerciseNew() {
   const [equipmentCatalog, setEquipmentCatalog] = useState([]);
   const [loadingEquipment, setLoadingEquipment] = useState(true);
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState([]);
+  const [demoVideoFile, setDemoVideoFile] = useState(null);
 
   useEffect(() => {
     getEquipment()
@@ -62,7 +63,6 @@ export default function ExerciseNew() {
       description: fd.get("description"),
       defaultReps: fd.get("defaultReps"),
       defaultSets: fd.get("defaultSets"),
-      demoVideoUrl: fd.get("demoVideoUrl"),
     });
     if (!parsed.success) {
       const es = {};
@@ -83,8 +83,9 @@ export default function ExerciseNew() {
         defaultSets: parsed.data.defaultSets,
       });
 
-      if (parsed.data.demoVideoUrl) {
-        await recordExerciseDemoVideo(exercise.id, parsed.data.demoVideoUrl);
+      if (demoVideoFile) {
+        const { url } = await uploadFile(demoVideoFile, "ExerciseDemoVideos");
+        await recordExerciseDemoVideo(exercise.id, url);
       }
 
       if (selectedEquipmentIds.length > 0) {
@@ -157,14 +158,14 @@ export default function ExerciseNew() {
               </div>
 
               <div className="grid gap-2.5">
-                <Label htmlFor="demoVideoUrl">Demo video URL</Label>
+                <Label htmlFor="demoVideoFile">Demo video (opciono)</Label>
                 <Input
-                  id="demoVideoUrl"
-                  name="demoVideoUrl"
-                  type="url"
-                  placeholder="https://…/demo.mp4"
+                  id="demoVideoFile"
+                  name="demoVideoFile"
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => setDemoVideoFile(e.target.files?.[0] ?? null)}
                 />
-                {errors.demoVideoUrl && <p className="text-xs text-destructive">{errors.demoVideoUrl}</p>}
               </div>
 
               <div className="grid gap-2.5">

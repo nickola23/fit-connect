@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Toaster } from "@/components/ui/sonner";
-import { registerTrainer, ApiError } from "@/lib/api-client";
+import { registerTrainer, uploadFile, ApiError } from "@/lib/api-client";
 import { saveSession } from "@/lib/auth-storage";
 
 const CREDENTIAL_TYPES = [
@@ -36,7 +36,6 @@ const schema = z.object({
   education: z.string().trim().min(2, "Unesi školovanje").max(500),
   bio: z.string().trim().max(1000).optional().or(z.literal("")),
   credentialType: z.enum(["License", "Diploma"]),
-  credentialFileUrl: z.string().trim().url("Unesi validan URL").max(2048),
   credentialIssuedBy: z.string().trim().min(2, "Unesi ko je izdao licencu/diplomu").max(200),
 }).refine((d) => d.password === d.confirmPassword, {
   message: "Lozinke se ne poklapaju",
@@ -48,6 +47,8 @@ export default function RegisterTrainer() {
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [credentialType, setCredentialType] = useState("License");
+  const [credentialFile, setCredentialFile] = useState(null);
+  const [fileError, setFileError] = useState("");
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -61,11 +62,12 @@ export default function RegisterTrainer() {
       education: fd.get("education"),
       bio: fd.get("bio") ?? "",
       credentialType,
-      credentialFileUrl: fd.get("credentialFileUrl"),
       credentialIssuedBy: fd.get("credentialIssuedBy"),
     };
 
     const result = schema.safeParse(raw);
+    let hasError = !result.success;
+
     if (!result.success) {
       const fieldErrors = {};
       for (const issue of result.error.issues) {
@@ -73,17 +75,30 @@ export default function RegisterTrainer() {
         if (!fieldErrors[key]) fieldErrors[key] = issue.message;
       }
       setErrors(fieldErrors);
+    } else {
+      setErrors({});
+    }
+
+    if (!credentialFile) {
+      setFileError("Priloži fajl (PDF ili slika) licence/diplome");
+      hasError = true;
+    } else {
+      setFileError("");
+    }
+
+    if (hasError) {
       toast.error("Proveri unete podatke");
       return;
     }
 
-    setErrors({});
     submitRegistration(result.data);
   }
 
   async function submitRegistration(data) {
     setSubmitting(true);
     try {
+      const { url } = await uploadFile(credentialFile, "Credentials");
+
       const { token, user } = await registerTrainer({
         name: data.name,
         email: data.email,
@@ -93,7 +108,7 @@ export default function RegisterTrainer() {
         credentials: [
           {
             type: data.credentialType,
-            fileUrl: data.credentialFileUrl,
+            fileUrl: url,
             issuedBy: data.credentialIssuedBy,
           },
         ],
@@ -228,8 +243,7 @@ export default function RegisterTrainer() {
                 Licenca ili diploma <span className="text-destructive">*</span>
               </p>
               <p className="text-xs text-muted-foreground">
-                Potreban je link ka fajlu (uploadovanje na cloud dolazi kasnije — za sada
-                samo nalepi URL).
+                Priloži skeniran ili fotografisan dokument (PDF ili slika).
               </p>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -264,17 +278,16 @@ export default function RegisterTrainer() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="credentialFileUrl">URL fajla</Label>
+                <Label htmlFor="credentialFile">Fajl (PDF ili slika)</Label>
                 <Input
-                  id="credentialFileUrl"
-                  name="credentialFileUrl"
-                  type="url"
-                  placeholder="https://.../licenca.pdf"
-                  aria-invalid={!!errors.credentialFileUrl}
+                  id="credentialFile"
+                  name="credentialFile"
+                  type="file"
+                  accept=".pdf,image/*"
+                  onChange={(e) => setCredentialFile(e.target.files?.[0] ?? null)}
+                  aria-invalid={!!fileError}
                 />
-                {errors.credentialFileUrl && (
-                  <p className="text-xs text-destructive">{errors.credentialFileUrl}</p>
-                )}
+                {fileError && <p className="text-xs text-destructive">{fileError}</p>}
               </div>
             </div>
 

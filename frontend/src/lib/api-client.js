@@ -1,6 +1,21 @@
 import { getToken } from "@/lib/auth-storage";
 
 const API_BASE_URL = "http://localhost:5089/api";
+// Uploaded files (credentials, demo videos) are served as static files directly
+// off the API's origin, not under /api — e.g. http://localhost:5089/uploads/...
+const FILE_ORIGIN = API_BASE_URL.replace(/\/api$/, "");
+
+/**
+ * Turns a relative upload path (e.g. "/uploads/credentials/<guid>.pdf") returned
+ * by uploadFile()/CredentialResponse.fileUrl/ExerciseResponse.demoVideoUrl into
+ * an absolute URL usable in <a href>/<video src>. Leaves already-absolute URLs
+ * (http://, https://) untouched.
+ */
+export function resolveFileUrl(path) {
+  if (!path) return path;
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${FILE_ORIGIN}${path.startsWith("/") ? "" : "/"}${path}`;
+}
 
 class ApiError extends Error {
   constructor(message, status, body) {
@@ -14,6 +29,46 @@ class ApiError extends Error {
 function authHeaders() {
   const token = getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+/**
+ * POST /api/files?category=... -> { url } (multipart, field name "file")
+ * category: "Credentials" | "ExerciseDemoVideos"
+ * Returns the relative url (e.g. "/uploads/credentials/<guid>.pdf") to send
+ * as fileUrl/url in the endpoint that actually uses it.
+ */
+export async function uploadFile(file, category) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_BASE_URL}/files?category=${category}`, {
+    method: "POST",
+    headers: {
+      ...authHeaders(),
+      // No Content-Type here on purpose — the browser sets the multipart
+      // boundary itself. Setting it manually breaks the upload.
+    },
+    body: formData,
+  });
+
+  let body = null;
+  const text = await response.text();
+  if (text) {
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = text;
+    }
+  }
+
+  if (!response.ok) {
+    const message =
+      (body && typeof body === "object" && body.message) ||
+      `Otpremanje fajla nije uspelo (${response.status})`;
+    throw new ApiError(message, response.status, body);
+  }
+
+  return body; // { url: "..." }
 }
 
 async function request(path, options = {}) {
@@ -463,6 +518,26 @@ export function createHealthRecord(clientId, { weight, height, healthCondition }
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify(payload),
+  });
+}
+
+/** POST /api/trainers/{id}/credentials -> CredentialResponse (that trainer, or Admin) */
+export function addTrainerCredential(trainerId, { type, fileUrl, issuedBy }) {
+  const payload = { type, fileUrl };
+  if (issuedBy) payload.issuedBy = issuedBy;
+
+  return request(`/trainers/${trainerId}/credentials`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+}
+
+/** DELETE /api/trainers/{id}/credentials/{credentialId} -> blocked with 409 if it's the trainer's last valid License/Diploma */
+export function deleteTrainerCredential(trainerId, credentialId) {
+  return request(`/trainers/${trainerId}/credentials/${credentialId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
   });
 }
 

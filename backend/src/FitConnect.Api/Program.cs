@@ -169,6 +169,20 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseStaticFiles();
 
+var fileStorageOptions = builder.Configuration.GetSection("FileStorage").Get<FileStorageOptions>()!;
+var absoluteUploadsPath = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, fileStorageOptions.RootPath));
+
+if (!Directory.Exists(absoluteUploadsPath))
+{
+    Directory.CreateDirectory(absoluteUploadsPath);
+}
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(absoluteUploadsPath),
+    RequestPath = new Microsoft.AspNetCore.Http.PathString(fileStorageOptions.PublicPathPrefix)
+});
+
 app.UseAuthentication();
 
 app.UseAuthorization();

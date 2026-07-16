@@ -18,6 +18,7 @@ import {
   markTrainingMissed,
   getTrainingReview,
   listExerciseEquipment,
+  resolveFileUrl,
   ApiError,
 } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
@@ -595,9 +596,17 @@ export default function TrainerHome() {
                       )}
                     </div>
                     {ex.demoVideoUrl && (
-                      <Badge variant="outline" className="shrink-0">
-                        Video
-                      </Badge>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <Badge variant="outline">Video</Badge>
+                        <a
+                          href={resolveFileUrl(ex.demoVideoUrl)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-primary underline"
+                        >
+                          Pogledaj
+                        </a>
+                      </div>
                     )}
                   </li>
                 ))}
