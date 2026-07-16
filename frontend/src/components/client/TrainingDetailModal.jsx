@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RateExerciseModal } from "@/components/client/RateExerciseModal";
-import { listTrainingExercises, ApiError } from "@/lib/api-client";
+import { listTrainingExercises, resolveFileUrl, ApiError } from "@/lib/api-client";
 import { CheckCircle2, Circle, Star, Video, Target } from "lucide-react";
 
 export function TrainingDetailModal({ open, onOpenChange, training }) {
@@ -71,12 +71,25 @@ export function TrainingDetailModal({ open, onOpenChange, training }) {
                       ) : (
                         <Circle className="h-4 w-4 shrink-0 text-muted-foreground" />
                       )}
-                      <p className="font-medium text-foreground">Vežba {index + 1}</p>
+                      <p className="font-medium text-foreground">
+                        {ex.exerciseName || `Vežba ${index + 1}`}
+                      </p>
                     </div>
                     <span className="text-sm text-muted-foreground">
                       {ex.assignedSets} × {ex.assignedReps}
                     </span>
                   </div>
+
+                  {ex.demoVideoUrl && (
+                    <a
+                      href={resolveFileUrl(ex.demoVideoUrl)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="ml-6 flex w-fit items-center gap-1 text-sm text-primary underline"
+                    >
+                      <Video className="h-3.5 w-3.5" /> Pogledaj video
+                    </a>
+                  )}
 
                   {ex.completed ? (
                     <div className="ml-6 flex flex-col gap-1">
