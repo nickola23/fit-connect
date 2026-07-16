@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Check, Pencil, Plus, Search, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +17,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-import { getEquipment, deleteEquipment } from "@/lib/api-client";
+import {
+  getEquipment,
+  deleteEquipment,
+  listClientEquipment,
+  addClientEquipment,
+  removeClientEquipment,
+  ApiError,
+} from "@/lib/api-client";
 import { getUser } from "@/lib/auth-storage";
 
 export function CatalogList({ kind, title, subtitle, newHref, editHrefBase }) {
@@ -24,15 +32,19 @@ export function CatalogList({ kind, title, subtitle, newHref, editHrefBase }) {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [toDelete, setToDelete] = useState(null);
+  const [ownedIds, setOwnedIds] = useState(() => new Set());
+  const [busyOwnedId, setBusyOwnedId] = useState(null);
 
   const user = getUser();
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "Admin";
+  const isClient = user?.role === "Client";
 
   // Mapiramo naš interni ključ u API parametar tipa
   const apiType = kind === "equipment" ? "Apparatus" : "Accessory";
 
   useEffect(() => {
     loadItems();
+    if (isClient) loadOwned();
   }, [kind]);
 
   const loadItems = async () => {
@@ -45,6 +57,38 @@ export function CatalogList({ kind, title, subtitle, newHref, editHrefBase }) {
       toast.error(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadOwned = async () => {
+    try {
+      const owned = await listClientEquipment(user.id);
+      setOwnedIds(new Set(owned.map((item) => item.id)));
+    } catch (err) {
+      // tiho ignorišemo — dugmad će samo prikazati "Označi da poseduješ"
+    }
+  };
+
+  const toggleOwned = async (item) => {
+    setBusyOwnedId(item.id);
+    const currentlyOwned = ownedIds.has(item.id);
+    try {
+      if (currentlyOwned) {
+        await removeClientEquipment(user.id, item.id);
+        setOwnedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(item.id);
+          return next;
+        });
+      } else {
+        await addClientEquipment(user.id, item.id);
+        setOwnedIds((prev) => new Set(prev).add(item.id));
+      }
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Greška pri ažuriranju.";
+      toast.error("Greška", { description: message });
+    } finally {
+      setBusyOwnedId(null);
     }
   };
 
@@ -112,10 +156,14 @@ export function CatalogList({ kind, title, subtitle, newHref, editHrefBase }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((item) => (
+          {filtered.map((item) => {
+            const owned = ownedIds.has(item.id);
+            return (
             <article
               key={item.id}
-              className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-shadow hover:shadow-lg"
+              className={`group flex flex-col overflow-hidden rounded-2xl border bg-card transition-shadow hover:shadow-lg ${
+                owned ? "border-primary ring-1 ring-primary/40" : "border-border"
+              }`}
             >
               <div className="aspect-[4/3] w-full overflow-hidden bg-muted flex items-center justify-center">
                 <div className="text-5xl font-display font-bold text-muted-foreground/30">
@@ -123,13 +171,34 @@ export function CatalogList({ kind, title, subtitle, newHref, editHrefBase }) {
                 </div>
               </div>
               <div className="flex flex-1 flex-col p-5">
-                <span className="text-xs font-medium uppercase tracking-wide text-primary">
-                  {kind === "equipment" ? "Sprava" : "Rekvizit"}
-                </span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-medium uppercase tracking-wide text-primary">
+                    {kind === "equipment" ? "Sprava" : "Rekvizit"}
+                  </span>
+                  {owned && (
+                    <Badge variant="outline" className="border-primary text-primary">
+                      <Check className="mr-1 h-3 w-3" /> U vlasništvu
+                    </Badge>
+                  )}
+                </div>
                 <h3 className="mt-1 font-display text-lg font-semibold text-foreground">
                   {item.name}
                 </h3>
-                
+
+                {isClient && (
+                  <div className="mt-4">
+                    <Button
+                      variant={owned ? "outline" : "secondary"}
+                      size="sm"
+                      className="w-full"
+                      disabled={busyOwnedId === item.id}
+                      onClick={() => toggleOwned(item)}
+                    >
+                      {owned ? "Ukloni iz mojih" : "Označi da poseduješ"}
+                    </Button>
+                  </div>
+                )}
+
                 {/* Isključivo admini vide opcije za izmenu i brisanje */}
                 {isAdmin && (
                   <div className="mt-auto flex justify-end gap-1 border-t border-border pt-4 mt-6">
@@ -152,7 +221,8 @@ export function CatalogList({ kind, title, subtitle, newHref, editHrefBase }) {
                 )}
               </div>
             </article>
-          ))}
+            );
+          })}
         </div>
       )}
 

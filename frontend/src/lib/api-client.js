@@ -392,4 +392,75 @@ export function createTrainingReview(trainingId, { rating, comment }) {
   });
 }
 
+/** GET /api/exercises/{id}/equipment -> EquipmentResponse[] */
+export function listExerciseEquipment(exerciseId) {
+  return request(`/exercises/${exerciseId}/equipment`, {
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/exercises/{id}/equipment/{equipmentId} -> links equipment to an exercise (no body, idempotent) */
+export function addExerciseEquipment(exerciseId, equipmentId) {
+  return request(`/exercises/${exerciseId}/equipment/${equipmentId}`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
+
+/** DELETE /api/exercises/{id}/equipment/{equipmentId} -> unlinks equipment from an exercise (idempotent) */
+export function removeExerciseEquipment(exerciseId, equipmentId) {
+  return request(`/exercises/${exerciseId}/equipment/${equipmentId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+}
+
+/** GET /api/clients/{id}/equipment -> EquipmentResponse[] (equipment the client owns) */
+export function listClientEquipment(clientId) {
+  return request(`/clients/${clientId}/equipment`, {
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/clients/{id}/equipment/{equipmentId} -> marks equipment as owned by the client (no body, idempotent) */
+export function addClientEquipment(clientId, equipmentId) {
+  return request(`/clients/${clientId}/equipment/${equipmentId}`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
+
+/** DELETE /api/clients/{id}/equipment/{equipmentId} -> unmarks equipment as owned (idempotent) */
+export function removeClientEquipment(clientId, equipmentId) {
+  return request(`/clients/${clientId}/equipment/${equipmentId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+}
+
+/** GET /api/clients/{id}/health-records?fromDate=&toDate= -> HealthRecordResponse[] (that client, or their Accepted/Active trainer; no admin access, NFR5) */
+export function listClientHealthRecords(clientId, { fromDate, toDate } = {}) {
+  const params = new URLSearchParams();
+  if (fromDate) params.set("fromDate", fromDate);
+  if (toDate) params.set("toDate", toDate);
+  const query = params.toString() ? `?${params.toString()}` : "";
+  return request(`/clients/${clientId}/health-records${query}`, {
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/clients/{id}/health-records -> HealthRecordResponse (that client only; append-only log, FR18) */
+export function createHealthRecord(clientId, { weight, height, healthCondition } = {}) {
+  const payload = {};
+  if (weight != null) payload.weight = weight;
+  if (height != null) payload.height = height;
+  if (healthCondition) payload.healthCondition = healthCondition;
+
+  return request(`/clients/${clientId}/health-records`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+}
+
 export { ApiError };
