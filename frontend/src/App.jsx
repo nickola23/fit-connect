@@ -26,6 +26,8 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import ClientProfile from "./pages/client/ClientProfile";
 import ClientProfileEdit from "./pages/client/ClientProfileEdit";
 import TrainingNew from "./pages/trainer/TrainingNew";
+import AdminHome from "./pages/admin/AdminHome";
+import AdminTrainerDetail from "./pages/admin/AdminTrainerDetail";
 
 function App() {
   return (
@@ -127,6 +129,20 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route path="/admin" element={
+          <ProtectedRoute allowedRoles={["Admin"]}>
+              <AdminHome />
+            </ProtectedRoute>
+            }
+          />
+
+          <Route path="/admin/trainers/:id" element={
+          <ProtectedRoute allowedRoles={["Admin"]}>
+              <AdminTrainerDetail />
+            </ProtectedRoute>
+            }
+          />
 
         <Route path="*" element={<NotFound />} />
       </Routes>
