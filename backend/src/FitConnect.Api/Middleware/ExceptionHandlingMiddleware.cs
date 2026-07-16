@@ -2,6 +2,7 @@
 using FitConnect.Domain.Exceptions;
 using FitConnect.Domain.Exceptions.Cooperaions;
 using FitConnect.Domain.Exceptions.Credentials;
+using FitConnect.Domain.Exceptions.Files;
 using FitConnect.Domain.Exceptions.HealthRecords;
 using FitConnect.Domain.Exceptions.Payments;
 using FitConnect.Domain.Exceptions.Reviews;
@@ -146,6 +147,14 @@ public class ExceptionHandlingMiddleware
         catch (FreeTrialCooperationCannotBePaidException ex)
         {
             await WriteProblemAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
+        catch (UnsupportedFileTypeException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.BadRequest, ex.Message);
+        }
+        catch (FileTooLargeException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.BadRequest, ex.Message);
         }
         catch (Exception ex)
         {
