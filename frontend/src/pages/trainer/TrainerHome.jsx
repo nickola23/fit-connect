@@ -17,6 +17,7 @@ import {
   completeTraining,
   markTrainingMissed,
   getTrainingReview,
+  listExerciseEquipment,
   ApiError,
 } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
@@ -340,6 +341,7 @@ export default function TrainerHome() {
   const [paidCooperationIds, setPaidCooperationIds] = useState(() => new Set());
   const [checkingPayments, setCheckingPayments] = useState(false);
   const [historyTarget, setHistoryTarget] = useState(null); // { id, clientName } | null
+  const [equipmentByExercise, setEquipmentByExercise] = useState({});
 
   const user = getUser();
 
@@ -381,6 +383,34 @@ export default function TrainerHome() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    const shown = exercises.slice(0, 5);
+    if (shown.length === 0) return;
+
+    let cancelled = false;
+
+    Promise.all(
+      shown.map((ex) =>
+        listExerciseEquipment(ex.id)
+          .then((items) => [ex.id, items])
+          .catch(() => [ex.id, []])
+      )
+    ).then((results) => {
+      if (cancelled) return;
+      setEquipmentByExercise((prev) => {
+        const next = { ...prev };
+        results.forEach(([id, items]) => {
+          next[id] = items;
+        });
+        return next;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [exercises]);
 
   useEffect(() => {
     const candidates = cooperations.filter(
@@ -548,14 +578,27 @@ export default function TrainerHome() {
             ) : (
               <ul className="divide-y divide-border">
                 {exercises.slice(0, 5).map((ex) => (
-                  <li key={ex.id} className="flex items-center justify-between py-3">
-                    <div>
+                  <li key={ex.id} className="flex items-center justify-between gap-3 py-3">
+                    <div className="min-w-0">
                       <p className="font-medium text-foreground">{ex.name}</p>
                       <p className="text-xs text-muted-foreground">
                         {ex.defaultSets} × {ex.defaultReps}
                       </p>
+                      {equipmentByExercise[ex.id]?.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {equipmentByExercise[ex.id].map((eq) => (
+                            <Badge key={eq.id} variant="secondary" className="text-xs">
+                              {eq.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    {ex.demoVideoUrl && <Badge variant="outline">Video</Badge>}
+                    {ex.demoVideoUrl && (
+                      <Badge variant="outline" className="shrink-0">
+                        Video
+                      </Badge>
+                    )}
                   </li>
                 ))}
               </ul>
