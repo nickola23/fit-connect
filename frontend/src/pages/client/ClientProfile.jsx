@@ -3,10 +3,10 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { ClientShell } from "@/components/client/ClientShell";
 import { getUser } from "@/lib/auth-storage";
-import { getClientById, ApiError } from "@/lib/api-client";
+import { getClientById, listClientHealthRecords, ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Pencil, Mail, Target, MapPin } from "lucide-react";
+import { Pencil, Mail, Target, MapPin, Weight, Ruler, HeartPulse, RotateCcw } from "lucide-react";
 import { usePageTitle } from "@/lib/use-page-title";
 
 const GOAL_OPTIONS = [
@@ -42,6 +42,8 @@ export default function ClientProfile() {
 
   const [client, setClient] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [healthRecords, setHealthRecords] = useState([]);
+  const [selectedRecordId, setSelectedRecordId] = useState(null);
 
   useEffect(() => {
     const user = getUser();
@@ -50,10 +52,14 @@ export default function ClientProfile() {
     let cancelled = false;
     setLoading(true);
 
-    getClientById(user.id)
-      .then((clientData) => {
+    Promise.all([getClientById(user.id), listClientHealthRecords(user.id)])
+      .then(([clientData, records]) => {
         if (cancelled) return;
         setClient(clientData);
+        const sorted = [...records].sort((a, b) =>
+          a.recordDate < b.recordDate ? 1 : -1
+        );
+        setHealthRecords(sorted);
       })
       .catch((error) => {
         if (cancelled) return;
@@ -82,6 +88,14 @@ export default function ClientProfile() {
 
   // Prevedi lokaciju vežbanja
   const locationLabel = TRAINING_LOCATIONS.find((t) => t.value === client.trainingLocation)?.label || "Nije izabrano";
+
+  // healthRecords je sortiran najnoviji->najstariji; timeline se prikazuje hronološki (najstariji levo)
+  const timelineRecords = [...healthRecords].reverse();
+  const currentRecord = healthRecords[0] || null;
+  const displayedRecord = selectedRecordId
+    ? healthRecords.find((r) => r.id === selectedRecordId) || currentRecord
+    : currentRecord;
+  const isViewingPast = !!selectedRecordId && selectedRecordId !== currentRecord?.id;
 
   return (
     <ClientShell>
@@ -125,6 +139,78 @@ export default function ClientProfile() {
               <span className="text-muted-foreground">ID:</span>
               <span className="font-mono text-xs">{client.id}</span>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-3">
+          <CardHeader className="flex flex-row items-center justify-between gap-4">
+            <CardTitle>Zdravstveni podaci kroz vreme</CardTitle>
+            {isViewingPast && (
+              <Button variant="outline" size="sm" onClick={() => setSelectedRecordId(null)}>
+                <RotateCcw className="mr-2 h-3.5 w-3.5" /> Vrati se na trenutni
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent>
+            {healthRecords.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Još uvek nema unetih zdravstvenih podataka. Možeš ih dodati na stranici za izmenu profila.
+              </p>
+            ) : (
+              <>
+                <div className="mb-8 flex flex-wrap items-center">
+                  {timelineRecords.map((record, index) => {
+                    const isSelected = record.id === displayedRecord?.id;
+                    const isLast = index === timelineRecords.length - 1;
+                    return (
+                      <div key={record.id} className="flex items-start">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedRecordId(record.id)}
+                          className="flex flex-col items-center gap-2 px-3 py-1"
+                          title={record.recordDate}
+                        >
+                          <span
+                            className={`h-3.5 w-3.5 shrink-0 rounded-full border-2 transition-colors ${
+                              isSelected
+                                ? "border-primary bg-primary"
+                                : "border-muted-foreground/40 bg-background hover:border-primary/60"
+                            }`}
+                          />
+                          <span
+                            className={`whitespace-nowrap text-xs ${
+                              isSelected ? "font-medium text-foreground" : "text-muted-foreground"
+                            }`}
+                          >
+                            {record.recordDate}
+                          </span>
+                        </button>
+                        {!isLast && <div className="mt-[11px] h-0.5 w-8 shrink-0 bg-border sm:w-16" />}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {displayedRecord && (
+                  <div className="rounded-lg border border-border">
+                    <div className="border-b border-border bg-muted/30 px-4 py-2">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        {isViewingPast ? "Prikazan zapis od" : "Trenutni zapis od"} {displayedRecord.recordDate}
+                      </p>
+                    </div>
+                    <div className="divide-y divide-border px-4">
+                      <Row icon={Weight} label="Težina (kg)" value={displayedRecord.weight ?? "—"} />
+                      <Row icon={Ruler} label="Visina (cm)" value={displayedRecord.height ?? "—"} />
+                      <Row
+                        icon={HeartPulse}
+                        label="Zdravstveno stanje"
+                        value={displayedRecord.healthCondition}
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

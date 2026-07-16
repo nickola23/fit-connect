@@ -3,11 +3,18 @@ import { useNavigate, Link } from "react-router-dom";
 import { z } from "zod";
 import { ClientShell } from "@/components/client/ClientShell";
 import { getUser } from "@/lib/auth-storage";
-import { getClientById, updateClientById, ApiError } from "@/lib/api-client";
+import {
+  getClientById,
+  updateClientById,
+  listClientHealthRecords,
+  createHealthRecord,
+  ApiError,
+} from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
@@ -38,6 +45,17 @@ const schema = z.object({
   trainingLocation: z.string().optional().or(z.literal("")),
 });
 
+const healthRecordSchema = z
+  .object({
+    weight: z.coerce.number().positive("Mora biti pozitivan broj").optional().or(z.literal("").transform(() => undefined)),
+    height: z.coerce.number().positive("Mora biti pozitivan broj").optional().or(z.literal("").transform(() => undefined)),
+    healthCondition: z.string().trim().max(1000).optional().or(z.literal("").transform(() => undefined)),
+  })
+  .refine((data) => data.weight != null || data.height != null || data.healthCondition, {
+    message: "Unesi bar jedno polje (težinu, visinu ili zdravstveno stanje)",
+    path: ["_form"],
+  });
+
 export default function ClientProfileEdit() {
   usePageTitle("Izmena profila | FitConnect");
 
@@ -47,6 +65,10 @@ export default function ClientProfileEdit() {
   const [goal, setGoal] = useState("");
   const [trainingLocation, setTrainingLocation] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const [healthErrors, setHealthErrors] = useState({});
+  const [healthSubmitting, setHealthSubmitting] = useState(false);
+  const [latestHealthRecord, setLatestHealthRecord] = useState(null);
 
   useEffect(() => {
     const user = getUser();
@@ -62,6 +84,16 @@ export default function ClientProfileEdit() {
         const message =
           error instanceof ApiError ? error.message : "Ne mogu da učitam profil.";
         toast.error("Greška pri učitavanju", { description: message });
+      });
+
+    listClientHealthRecords(user.id)
+      .then((records) => {
+        if (records.length === 0) return;
+        const latest = [...records].sort((a, b) => (a.recordDate < b.recordDate ? 1 : -1))[0];
+        setLatestHealthRecord(latest);
+      })
+      .catch(() => {
+        // tiho ignorišemo — forma će samo biti prazna
       });
   }, []);
 
@@ -111,6 +143,40 @@ export default function ClientProfileEdit() {
         toast.error("Greška", { description: message });
       })
       .finally(() => setSubmitting(false));
+  }
+
+  function onHealthRecordSubmit(e) {
+    e.preventDefault();
+    setHealthErrors({});
+    const fd = new FormData(e.currentTarget);
+    const parsed = healthRecordSchema.safeParse({
+      weight: fd.get("weight"),
+      height: fd.get("height"),
+      healthCondition: fd.get("healthCondition"),
+    });
+
+    if (!parsed.success) {
+      const es = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0]?.toString() ?? "_form";
+        if (!es[key]) es[key] = issue.message;
+      }
+      setHealthErrors(es);
+      return;
+    }
+
+    setHealthSubmitting(true);
+    createHealthRecord(client.id, parsed.data)
+      .then(() => {
+        toast.success("Zdravstveni podaci su sačuvani");
+        navigate("/client/profile");
+      })
+      .catch((error) => {
+        const message =
+          error instanceof ApiError ? error.message : "Zapis nije sačuvan.";
+        toast.error("Greška", { description: message });
+      })
+      .finally(() => setHealthSubmitting(false));
   }
 
   return (
@@ -182,6 +248,72 @@ export default function ClientProfileEdit() {
               </Button>
               <Button type="button" variant="outline" onClick={() => navigate("/client/profile")}>
                 Otkaži
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6 max-w-3xl">
+        <CardHeader>
+          <CardTitle>Novi zdravstveni zapis</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Ovo dodaje novi unos u istoriju — stari zapisi ostaju sačuvani i vidljivi na profilu.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <form key={latestHealthRecord?.id || "empty"} onSubmit={onHealthRecordSubmit} className="space-y-8">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid gap-2.5">
+                <Label htmlFor="weight">Težina (kg)</Label>
+                <Input
+                  id="weight"
+                  name="weight"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  defaultValue={latestHealthRecord?.weight ?? ""}
+                  placeholder="npr. 78.5"
+                />
+                {healthErrors.weight && <p className="text-xs text-destructive">{healthErrors.weight}</p>}
+              </div>
+              <div className="grid gap-2.5">
+                <Label htmlFor="height">Visina (cm)</Label>
+                <Input
+                  id="height"
+                  name="height"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  defaultValue={latestHealthRecord?.height ?? ""}
+                  placeholder="npr. 180"
+                />
+                {healthErrors.height && <p className="text-xs text-destructive">{healthErrors.height}</p>}
+              </div>
+            </div>
+
+            <div className="grid gap-2.5">
+              <Label htmlFor="healthCondition">Zdravstveno stanje</Label>
+              <Textarea
+                id="healthCondition"
+                name="healthCondition"
+                rows={4}
+                maxLength={1000}
+                defaultValue={latestHealthRecord?.healthCondition ?? ""}
+                placeholder="Npr. povreda kolena, alergije, ograničenja u vežbanju…"
+              />
+              {healthErrors.healthCondition && (
+                <p className="text-xs text-destructive">{healthErrors.healthCondition}</p>
+              )}
+            </div>
+
+            {healthErrors._form && (
+              <p className="text-xs text-destructive">{healthErrors._form}</p>
+            )}
+
+            <div className="flex items-center gap-3 border-t border-border pt-6">
+              <Button type="submit" disabled={healthSubmitting}>
+                {healthSubmitting ? "Čuvam..." : "Sačuvaj zdravstveni zapis"}
               </Button>
             </div>
           </form>
