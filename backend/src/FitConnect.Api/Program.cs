@@ -8,6 +8,7 @@ using FitConnect.Application.Cooperations;
 using FitConnect.Application.Credentials;
 using FitConnect.Application.Equipment;
 using FitConnect.Application.Exercises;
+using FitConnect.Application.Files;
 using FitConnect.Application.HealthRecords;
 using FitConnect.Application.Payments;
 using FitConnect.Application.Reviews;
@@ -16,6 +17,7 @@ using FitConnect.Application.Users;
 using FitConnect.Infrastructure.Security;
 using FitConnect.Infrastructure.Persistence;
 using FitConnect.Infrastructure.Repositories;
+using FitConnect.Infrastructure.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
@@ -114,6 +116,10 @@ builder.Services.AddScoped<PaymentService>();
 
 builder.Services.AddScoped<IAuthorizationHandler, CooperationTrainerParticipantOrAdminAuthorizationHandler>();
 
+builder.Services.Configure<FileStorageOptions>(builder.Configuration.GetSection("FileStorage"));
+builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
+builder.Services.AddScoped<FileUploadService>();
+
 var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()!;
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -160,6 +166,8 @@ app.UseHttpsRedirection();
 app.UseCors("AllowReactApp");
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+app.UseStaticFiles();
 
 app.UseAuthentication();
 
