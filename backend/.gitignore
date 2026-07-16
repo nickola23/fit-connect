@@ -413,3 +413,6 @@ $RECYCLE.BIN/
 
 # Rider
 *.sln.DotSettings
+
+# Ignore user uploaded files
+uploads/
