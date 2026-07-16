@@ -169,11 +169,14 @@ export function endCooperation(id) {
   });
 }
 
-/** GET /api/trainers?sortBy=&sortDirection= -> TrainerResponse[] (non-admins only see Approved) */
-export function listTrainers({ sortBy, sortDirection } = {}) {
+/** GET /api/trainers?sortBy=&sortDirection=&registrationStatus=Pending&page=&pageSize= -> PagedResult<TrainerResponse> (non-admins only see Approved; Admin can filter by registrationStatus) */
+export function listTrainers({ sortBy, sortDirection, registrationStatus, page, pageSize } = {}) {
   const params = new URLSearchParams();
   if (sortBy) params.set("sortBy", sortBy);
   if (sortDirection) params.set("sortDirection", sortDirection);
+  if (registrationStatus) params.set("registrationStatus", registrationStatus);
+  if (page) params.set("page", page);
+  if (pageSize) params.set("pageSize", pageSize);
   const query = params.toString() ? `?${params.toString()}` : "";
   return request(`/trainers${query}`, {
     headers: authHeaders(),
@@ -460,6 +463,22 @@ export function createHealthRecord(clientId, { weight, height, healthCondition }
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify(payload),
+  });
+}
+
+/** POST /api/trainers/{id}/approve -> Admin only, trainer must currently be Pending */
+export function approveTrainer(id) {
+  return request(`/trainers/${id}/approve`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
+
+/** POST /api/trainers/{id}/reject -> Admin only, trainer must currently be Pending */
+export function rejectTrainer(id) {
+  return request(`/trainers/${id}/reject`, {
+    method: "POST",
+    headers: authHeaders(),
   });
 }
 
