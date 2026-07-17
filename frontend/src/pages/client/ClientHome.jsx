@@ -13,6 +13,7 @@ import {
   getTrainerById,
   endCooperation,
   listCooperationTrainings,
+  completeTraining,
   ApiError,
 } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ import {
   XCircle,
   Video,
   Target,
+  Check,
 } from "lucide-react";
 import { usePageTitle } from "@/lib/use-page-title";
 
@@ -64,6 +66,7 @@ export default function ClientHome() {
   const [trainings, setTrainings] = useState([]);
   const [trainingsLoading, setTrainingsLoading] = useState(false);
   const [selectedTraining, setSelectedTraining] = useState(null);
+  const [completingId, setCompletingId] = useState(null);
 
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showPaymentsModal, setShowPaymentsModal] = useState(false);
@@ -141,6 +144,22 @@ export default function ClientHome() {
       toast.error("Greška", { description: message });
     } finally {
       setEnding(false);
+    }
+  }
+
+  async function handleCompleteTraining(e, training) {
+    e.stopPropagation(); // ne otvaraj detalje treninga, samo završi ga
+    setCompletingId(training.id);
+    try {
+      await completeTraining(training.id);
+      toast.success("Trening je označen kao odrađen.");
+      if (activeCooperation) loadTrainings(activeCooperation.id);
+    } catch (error) {
+      const message =
+        error instanceof ApiError ? error.message : "Nije uspelo završavanje treninga.";
+      toast.error("Greška", { description: message });
+    } finally {
+      setCompletingId(null);
     }
   }
 
@@ -261,6 +280,18 @@ export default function ClientHome() {
                       <p className="text-sm text-muted-foreground">
                         {training.type === "Live" ? "Uživo" : "Zadat trening"}
                       </p>
+                      {training.status === "Scheduled" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-3 w-full"
+                          onClick={(e) => handleCompleteTraining(e, training)}
+                          disabled={completingId === training.id}
+                        >
+                          <Check className="mr-1 h-4 w-4" />
+                          {completingId === training.id ? "Čuvam..." : "Označi odrađeno"}
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
