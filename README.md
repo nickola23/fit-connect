@@ -25,17 +25,11 @@ The backend is split into four projects so business logic never depends on ASP.N
 ```
 backend/
 ├── Database/
-│   └── Scripts/
-│       ├── database.sql      -- full schema, source of truth (no ORM/migrations)
-│       └── seed.sql          -- local dev seed data
 ├── src/
 │   ├── FitConnect.Domain/          -- entities, value objects, business rules
-│   │                                  (zero framework dependencies)
 │   ├── FitConnect.Application/     -- use-case services, repository interfaces
-│   ├── FitConnect.Infrastructure/  -- Npgsql repositories, JWT, password hashing,
-│   │                                  local file storage
-│   └── FitConnect.Api/             -- controllers, request/response DTOs,
-│                                       authorization policies, DI wiring
+│   ├── FitConnect.Infrastructure/  -- Npgsql repositories, JWT, password hashing
+│   └── FitConnect.Api/             -- controllers, request/response DTOs, DI wiring
 ```
 
 `Api → Infrastructure → Application → Domain`. Controllers stay thin — parse the request, call one Application service, map the result to an HTTP response; business rules live in `Domain`/`Application`, never in `Api`. Since there's no ORM, `Infrastructure` repositories map database rows to `Domain` entities by hand and issue explicit parameterized SQL against the schema in `database.sql`.
