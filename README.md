@@ -1,6 +1,6 @@
 # FitConnect
 
-ASP.NET Core Web API backend for a platform connecting personal trainers and clients.
+ASP.NET Core Web API + React platform for connecting personal trainers and clients.
 
 ## 📒 Description
 
